@@ -612,11 +612,11 @@ contains
 
   end subroutine fwrite_ascii_1d_1c
 
-  subroutine dwrite_ascii_1d_1c(filespec,t,zonetitle,tab)
+  subroutine dwrite_ascii_1d_1c(filespec,t,tab,zonetitle)
     implicit none
     type(filetype)                                    ::filespec
     real(kind=8), intent(in), dimension(:)            ::t
-    real(kind=8), intent(in), dimension(:) ,optional  ::tab
+    real(kind=8), intent(in), dimension(:)            ::tab
     character(len=*)  ,optional                       ::zonetitle
     integer(kind=8)                                   ::nn
     !------------------------------------------------------------
@@ -632,15 +632,15 @@ contains
        write(filespec%fid,1665)'Zone T="", I=',nn
     end if
 
-    if (present(tab)) then
-       do in=1,nn
-          write(filespec%fid,1664)t(in),tab(in)
-       end do
-    else
-       do in=1,nn
-          write(filespec%fid,1664)t(in)
-       end do
-    end if
+    !    if (present(tab)) then
+    do in=1,nn
+       write(filespec%fid,1664)t(in),tab(in)
+    end do
+    ! else
+    !    do in=1,nn
+    !       write(filespec%fid,1664)t(in)
+    !    end do
+    ! end if
 
   end subroutine dwrite_ascii_1d_1c
 
@@ -828,6 +828,7 @@ contains
        do i=1,ni
           write(filespec%fid,1664)(x(i,j,ix),ix=1,nx),tab(i,j)
        end do
+       write(filespec%fid,*)
     end do
     ! else
     !    do j=1,nj
