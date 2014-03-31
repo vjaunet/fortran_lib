@@ -4,7 +4,6 @@ Fortran Librairies
 Installation :
 make
 make install
-make clean
 
 In the program make file include the installation path "IPATH" as the following:
 ifort -IIPATH/MOD
@@ -18,4 +17,5 @@ mylib has to be raplaced with one the following librairy names :
 - tecplot
   a tecplot_io module for read and writing acsii tecplot files
 
-- to be continued...
+- interp
+  a interpolation module containing 1d and 2 routines

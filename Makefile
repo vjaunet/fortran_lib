@@ -30,6 +30,7 @@ clean:
 
 install:
 	ar rc libtecplot.a tecplot_io.o
+	ar rc libinterpol.a interpol.o
 	mv *.mod MOD/.
 	mv *.a LIB/.
 	rm -rf *.o *~ *.mod
