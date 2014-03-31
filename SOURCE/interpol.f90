@@ -169,13 +169,12 @@ contains
              end do
 
              !for debugging
-             if (isnan(yint(iint,jint))) then
-                print*,itmp(1),itmp(2)
-                print*,xint(iint,jint,1),xint(iint,jint,1)
-                ! pause
-                yint(iint,jint) = -10.d0
-             end if
-
+             ! if (isnan(yint(iint,jint))) then
+             !    print*,itmp(1),itmp(2)
+             !    print*,xint(iint,jint,1),xint(iint,jint,1)
+             !    ! pause
+             !    yint(iint,jint) = -10.d0
+             ! end if
 
           end if
 
