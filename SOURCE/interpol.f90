@@ -7,7 +7,7 @@ module interpol
   !*  author : Vincent Jaunet
   !*  date   : 24-03-2014
   !*  License: MIT
-  !*
+  !*  contact: v.jaunet@gmail.com
   !*
   !*
   !=================Specification=============================
@@ -20,7 +20,10 @@ module interpol
   !* For 1d Data :
   !* call spline_inter(x(:),y(:),xint(:),yint(:))
   !*
-  !* call inv_dist_inter(x(:),y(:),xint(:),yint(:))
+  !* call inv_dist_inter(x(:),y(:),xint(:),yint(:),power,type)
+  !*  - power is the power of the weigthing distance
+  !*  - type has to be passed as a character(len=1) for a local
+  !*    interpolation
   !*
   !* For 2d Data :
   !*
@@ -31,8 +34,6 @@ module interpol
   !=================    Usage    =============================
 
   !=================    TO DO    =============================
-  !*
-  !*          2D spline
   !*
   !*          2D inverse distance
   !*
@@ -1134,7 +1135,7 @@ contains
        return
 
     else if (x(itmp(1),itmp(2),1) > xint(1) .and. &
-       x(itmp(1),itmp(2),2) < xint(2)) then
+         x(itmp(1),itmp(2),2) < xint(2)) then
 
        !the interpolated pt is in the the lower right corner
 
@@ -1173,7 +1174,7 @@ contains
        return
 
     else if (x(itmp(1),itmp(2),1) > xint(1) .and. &
-       x(itmp(1),itmp(2),2) > xint(2)) then
+         x(itmp(1),itmp(2),2) > xint(2)) then
        !the interpolated pt is in the the upper right corner
 
        !lower left corner
@@ -1211,7 +1212,7 @@ contains
        return
 
     else if (x(itmp(1),itmp(2),1) == xint(1) .and. &
-       x(itmp(1),itmp(2),2) < xint(2)) then
+         x(itmp(1),itmp(2),2) < xint(2)) then
 
        !the interpolated pt is on the left edge
        ! towards the bottom
@@ -1251,7 +1252,7 @@ contains
        return
 
     else if (x(itmp(1),itmp(2),1) == xint(1) .and. &
-       x(itmp(1),itmp(2),2) > xint(2)) then
+         x(itmp(1),itmp(2),2) > xint(2)) then
        !the interpolated pt is on the left edge
        ! towards the top
 
@@ -1290,7 +1291,7 @@ contains
        return
 
     else if (x(itmp(1),itmp(2),1) < xint(1) .and. &
-       x(itmp(1),itmp(2),2) == xint(2)) then
+         x(itmp(1),itmp(2),2) == xint(2)) then
 
        !the interpolated pt is on the top edge
        ! towards the left
@@ -1330,7 +1331,7 @@ contains
        return
 
     else if (x(itmp(1),itmp(2),1) > xint(1) .and. &
-       x(itmp(1),itmp(2),2) == xint(2)) then
+         x(itmp(1),itmp(2),2) == xint(2)) then
 
        !the interpolated pt is on the top
        ! towards the rigth
