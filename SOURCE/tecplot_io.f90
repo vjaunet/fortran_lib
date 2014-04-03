@@ -486,11 +486,11 @@ contains
     character(len=*) ,optional                 ::zonetitle
     !-------------------------------------------------
 
-1664 format (<nc+1>(e15.8,2x))
-1665 format (a,a,a,i5)
-
     nn = size(tab,1)
     nc = size(tab,2)
+
+1664 format (<nc+1>(e15.8,2x))
+1665 format (a,a,a,i0)
 
     if (present(zonetitle)) then
        write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
@@ -519,14 +519,14 @@ contains
     character(len=*)  ,optional                          ::zonetitle
     !----------------------------------------------------------------
 
-1664 format (<nc+1>(e15.8,2x))
-1665 format (a,a,a,i5)
-
     nn = size(tab,1)
     nc = size(tab,2)
 
+1664 format (<nc+1>(e15.8,2x))
+1665 format (a,a,a,i0)
+
     if (present(zonetitle)) then
-       write(filespec%fid,1665)'#Zone T="',trim(zonetitle),'", I=',nn
+       write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
     else
        write(filespec%fid,1665)'Zone T="", I=',nn
     end if
@@ -552,11 +552,11 @@ contains
     character(len=*)   ,optional                ::zonetitle
     !-------------------------------------------------
 
-1664 format (<nc+1>(i5,2x))
-1665 format (a,a,a,i5)
-
     nn = size(tab,1)
     nc = size(tab,2)
+
+1664 format (<nc+1>(e15.8,2x))
+1665 format (a,a,a,i0)
 
     if (present(zonetitle)) then
        write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
@@ -588,10 +588,10 @@ contains
     character(len=*) ,optional                 ::zonetitle
     !-------------------------------------------------
 
-1664 format (2(e15.8,2x))
-1665 format (a,a,a,i5)
-
     nn = size(t)
+
+1664 format (2(e15.8,2x))
+1665 format (a,a,a,i0)
 
     if (present(zonetitle)) then
        write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
@@ -621,15 +621,15 @@ contains
     integer(kind=8)                                   ::nn
     !------------------------------------------------------------
 
-1664 format (2(e15.8,2x))
-1665 format (a,a,a,i5)
-
     nn = size(t)
 
+1664 format (2(e15.8,2x))
+1665 format (a,a,a,i0)
+
     if (present(zonetitle)) then
-       write(filespec%fid,1665)'#Zone T="',trim(zonetitle),'", I=',nn
+       write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
     else
-       write(filespec%fid,1665)'Zone T="", I=',nn
+       write(filespec%fid,'(a,i0)')'Zone T="", I=',nn
     end if
 
     !    if (present(tab)) then
@@ -653,10 +653,10 @@ contains
     character(len=*)   ,optional                ::zonetitle
     !-------------------------------------------------
 
-1664 format (2(i5,2x))
-1665 format (a,a,a,i5)
-
     nn = size(t)
+
+1664 format (2(e15.8,2x))
+1665 format (a,a,a,i0)
 
     if (present(zonetitle)) then
        write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
@@ -691,7 +691,7 @@ contains
     !-------------------------------------------------------------
 
 1664 format (<2*nc>(e15.8,2x))
-1665 format (a,a,a,i5,a,i5)
+1665 format (a,a,a,i0,a,i0)
 
     ni=size(tab,1)
     nj=size(tab,2)
@@ -732,7 +732,7 @@ contains
     !------------------------------------------------------------------
 
 1664 format (<2*nc>(e15.8,2x))
-1665 format (a,a,a,i5,a,i5)
+1665 format (a,a,a,i0,a,i0)
 
     ni=size(tab,1)
     nj=size(tab,2)
@@ -770,7 +770,7 @@ contains
     !----------------------------------------------------------------
 
 1664 format (<2*nc>(e15.8,2x))
-1665 format (a,a,a,i5,a,i5)
+1665 format (a,a,a,i0,a,i0)
 
     ni=size(tab,1)
     nj=size(tab,2)
@@ -811,14 +811,14 @@ contains
     !------------------------------------------------------------------
 
 1664 format (<4>(e15.8,2x))
-1665 format (a,a,a,i5,a,i5)
+1665 format (a,a,a,i0,a,i0)
 
     ni=size(tab,1)
     nj=size(tab,2)
     nx=size(x,3)
 
     if (present(zonetitle)) then
-       write(filespec%fid,1665)'#Zone T="',trim(zonetitle),'", I=',ni,', J=',nj
+       write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',ni,', J=',nj
     else
        write(filespec%fid,1665)'Zone T="", I=',ni,', J=',nj
     end if
@@ -828,7 +828,6 @@ contains
        do i=1,ni
           write(filespec%fid,1664)(x(i,j,ix),ix=1,nx),tab(i,j)
        end do
-       write(filespec%fid,*)
     end do
     ! else
     !    do j=1,nj
@@ -856,7 +855,7 @@ contains
     !--------------------------------------------------------------
 
 1664 format (<2*nc>(e15.8,2x))
-1665 format (a,a,a,i5,a,i5,a,i5)
+1665 format (a,a,a,i0,a,i0,a,i0)
 
     ni=size(tab,1)
     nj=size(tab,2)
@@ -900,7 +899,7 @@ contains
     !--------------------------------------------------------------------
 
 1664 format (<nc>(e15.8,2x))
-1665 format (a,a,a,i5,a,i5,a,i5)
+1665 format (a,a,a,i0,a,i0,a,i0)
 
     ni=size(tab,1)
     nj=size(tab,2)
@@ -944,7 +943,7 @@ contains
     !-----------------------------------------------------------------
 
 1664 format (<2*nc>(i5,2x))
-1665 format (a,a,a,i5,a,i5,a,i5)
+1665 format (a,a,a,i0,a,i0,a,i0)
 
     ni=size(tab,1)
     nj=size(tab,2)
