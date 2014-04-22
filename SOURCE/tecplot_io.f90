@@ -1,5 +1,5 @@
 module tecplot_IO
-
+  implicit none
   !=================Specification=============================
   !*
   !*       Module for Reading and Writing Tecplot data
@@ -26,7 +26,7 @@ module tecplot_IO
   !* !Defines the file parameters :
   !* ofile = filetype(filename = 'file.dat',&
   !*      RWaccess = 'W',& ! "W" for writting, "R" for reading, "" for both
-  !*      exist = 1,& ! if the file must exist, .false if not
+  !*      exist = 1,& ! if the file must exist, 0 if not
   !*      fid = 10,&       ! fid number
   !*      varnames = '"x" "y" "U" "V"',& !Varaible names as a string
   !*      title = 'Title')               !File title as string
@@ -76,7 +76,7 @@ module tecplot_IO
   !* call tec_read_header(iifile)
   !* call tec_get_zone(iifile,nt,nc)
   !* call tec_read_ascii(iifile,data,nt,nc)
-  !* call tec_close(iifile)
+  !* call tec_closefile(iifile)
   !*
   !*
   !*
@@ -107,7 +107,14 @@ module tecplot_IO
        fwrite_ascii_3d,dwrite_ascii_3d,iwrite_ascii_3d,&
        fread_ascii_1d, dread_ascii_1d, iread_ascii_1d,&
        fread_ascii_2d,dread_ascii_2d,iread_ascii_2d,&
-       fread_ascii_3d,dread_ascii_3d,iread_ascii_3d
+       fread_ascii_3d,dread_ascii_3d,iread_ascii_3d,&
+       tec_read_header_io, tec_read_header_BSA
+
+  interface tec_read_header
+     module procedure tec_read_header_io, tec_read_header_BSA
+  end interface tec_read_header
+
+
 
   interface tec_read_ascii
      module procedure fread_ascii_1d, dread_ascii_1d, iread_ascii_1d,&
@@ -191,7 +198,7 @@ contains
 
   end subroutine tec_write_header
 
-  subroutine tec_read_header(filespec)
+  subroutine tec_read_header_io(filespec)
     implicit none
     type(filetype)                      ::filespec
     character(len=9)                    ::trash1
@@ -205,9 +212,30 @@ contains
     !Remove remaining " from title
     filespec%title = filespec%title(1:len_trim(filespec%title)-1)
 
-  end subroutine tec_read_header
+  end subroutine tec_read_header_io
 
-  subroutine tec_get_zone(filespec,ni,nc,nj,nk,zone_title)
+  subroutine tec_read_header_BSA(filespec,nl)
+    implicit none
+    type(filetype)                      ::filespec
+    integer                             ::nl
+    character(len=9)                    ::trash1
+    character(len=12)                   ::trash2
+    !--------------------------------------------
+
+    read(filespec%fid,'(a9,a)')trash1,filespec%title
+    do i=1,nl
+       read(filespec%fid,*)
+    end do
+    read(filespec%fid,'(a12,a)')trash2,filespec%varnames
+    read(filespec%fid,*)
+
+    !Remove remaining " from title
+    filespec%title = filespec%title(1:len_trim(filespec%title)-1)
+
+  end subroutine tec_read_header_BSA
+
+
+  subroutine tec_get_zone(filespec,nx,nc,ny,nz,zone_title)
     type(filetype)                      ::filespec
 
     character(len=250)                  ::zone
@@ -215,8 +243,8 @@ contains
     integer                             ::ios
     character(len=10)                   ::trash1
 
-    integer(kind=8)                     ::ni,nc
-    integer(kind=8),    optional        ::nj,nk
+    integer(kind=8)                     ::nx,nc
+    integer(kind=8),    optional        ::ny,nz
     character(len=250), optional        ::zone_title
     !-----------------------------------------------
 
@@ -232,6 +260,7 @@ contains
     read(filespec%fid,'(a)')zone
 
     i=1
+    ii=0
     do while (i<len_trim(zone)-1)
 
        if (zone(i:i+1) == '"') then
@@ -244,11 +273,11 @@ contains
           end do
           zone_title = adjustl(zone(i+2:i+ii))
 
-       else if (zone(i:i+1) == "I=") then
+       else if (zone(i:i+1) == 'I=') then
           !get nx
 
           ii = 1
-          do while (zone(i+ii+1:i+ii+1) == ',' &
+          do while (zone(i+ii+1:i+ii+1) /= ',' &
                .or. i+ii+1==len_trim(zone))
              ii = ii+1
           end do
@@ -259,7 +288,7 @@ contains
           !get ny
 
           ii = 1
-          do while (zone(i+ii+1:i+ii+1) == ',' &
+          do while (zone(i+ii+1:i+ii+1) /= ',' &
                .or. i+ii+1==len_trim(zone))
              ii = ii+1
           end do
@@ -270,7 +299,7 @@ contains
           !get nz
 
           ii = 1
-          do while (zone(i+ii+1:i+ii+1) == ',' &
+          do while (zone(i+ii+1:i+ii+1) /= ',' &
                .or. i+ii+1==len_trim(zone))
              ii = ii+1
           end do
