@@ -26,7 +26,7 @@ module tecplot_IO
   !* !Defines the file parameters :
   !* ofile = filetype(filename = 'file.dat',&
   !*      RWaccess = 'W',& ! "W" for writting, "R" for reading, "" for both
-  !*      exist = .true.,& ! if the file must exist, .false if not
+  !*      exist = 1,& ! if the file must exist, .false if not
   !*      fid = 10,&       ! fid number
   !*      varnames = '"x" "y" "U" "V"',& !Varaible names as a string
   !*      title = 'Title')               !File title as string
@@ -69,7 +69,7 @@ module tecplot_IO
   !* Reading data :
   !* iifile = filetype(filename = 'res-new-eemd-io.dat',&
   !*      RWaccess = 'R',&
-  !*      exist = .true.,&
+  !*      exist = 0,&
   !*      fid = 10)
   !*
   !* call tec_openfile(iifile)
