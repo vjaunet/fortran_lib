@@ -100,7 +100,7 @@ module tecplot_IO
   public  :: tec_openfile,tec_closefile,tec_write_ascii,tec_read_ascii,&
        tec_write_header,tec_read_header,tec_get_zone
 
-  private :: fwrite_ascii_1d, dwrite_ascii_1d, iwrite_ascii_1d,&
+  private :: fwrite_ascii_1d, dwrite_ascii_1d_2, dwrite_ascii_1d, iwrite_ascii_1d,&
        fwrite_ascii_1d_1c, dwrite_ascii_1d_1c, iwrite_ascii_1d_1c,&
        fwrite_ascii_2d,dwrite_ascii_2d,iwrite_ascii_2d,&
        dwrite_ascii_2d_1c,&
@@ -123,7 +123,7 @@ module tecplot_IO
   end interface tec_read_ascii
 
   interface tec_write_ascii
-     module procedure fwrite_ascii_1d, dwrite_ascii_1d, iwrite_ascii_1d,&
+     module procedure fwrite_ascii_1d, dwrite_ascii_1d_2, dwrite_ascii_1d, iwrite_ascii_1d,&
           fwrite_ascii_1d_1c, dwrite_ascii_1d_1c, iwrite_ascii_1d_1c,&
           fwrite_ascii_2d,dwrite_ascii_2d,iwrite_ascii_2d,&
           dwrite_ascii_2d_1c,&
@@ -705,6 +705,38 @@ contains
     end if
 
   end subroutine iwrite_ascii_1d_1c
+
+  !=======================================================
+  ! for 1d_1c with x_y_z written
+
+  subroutine dwrite_ascii_1d_2(filespec,t,tab,zonetitle)
+    implicit none
+    type(filetype)                                       ::filespec
+    integer(kind=8)                                      ::nn,nc,nx
+    real(kind=8), intent(in), dimension(:,:)             ::tab
+    real(kind=8), intent(in), dimension(:,:)             ::t
+    character(len=*)  ,optional                          ::zonetitle
+    !----------------------------------------------------------------
+
+    nn = size(tab,1)
+    nc = size(tab,2)
+    nx = size(t,2)
+
+1664 format (<nc+nx>(e15.8,2x))
+1665 format (a,a,a,i0)
+
+    if (present(zonetitle)) then
+       write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
+    else
+       write(filespec%fid,1665)'Zone T="", I=',nn
+    end if
+
+    do in=1,nn
+       write(filespec%fid,1664)(t(in,ic),ic=1,nx),(tab(in,ic),ic=1,nc)
+    end do
+
+  end subroutine dwrite_ascii_1d_2
+
 
   !==== Write 2D data =============================================
   !*
