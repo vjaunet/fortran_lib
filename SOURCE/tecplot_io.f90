@@ -220,7 +220,7 @@ contains
     integer                             ::nl
     character(len=9)                    ::trash1
     character(len=12)                   ::trash2
-    character(len=19)                   ::trash19
+    character(len=18)                   ::trash18
     character(len=1)                    ::trash4
     integer(kind=8)                     ::h,m,s
     real(kind=8)                        ::t0
@@ -230,7 +230,7 @@ contains
 
     !bsa header
     read(filespec%fid,*)
-    read(filespec%fid,'(a19,i2,a1,i2,a1,i2)')trash19,h,trash4,m,trash4,s
+    read(filespec%fid,'(a18,i2,a1,i2,a1,i2)')trash18,h,trash4,m,trash4,s
     t0 = (h*60+m)*60+s
     read(filespec%fid,*)
     read(filespec%fid,*)
