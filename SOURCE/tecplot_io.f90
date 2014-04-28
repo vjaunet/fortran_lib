@@ -214,18 +214,27 @@ contains
 
   end subroutine tec_read_header_io
 
-  subroutine tec_read_header_BSA(filespec,nl)
+  subroutine tec_read_header_BSA(filespec,t0)
     implicit none
     type(filetype)                      ::filespec
     integer                             ::nl
     character(len=9)                    ::trash1
     character(len=12)                   ::trash2
+    character(len=19)                   ::trash19
+    character(len=1)                    ::trash4
+    integer(kind=8)                     ::h,m,s
+    real(kind=8)                        ::t0
     !--------------------------------------------
 
     read(filespec%fid,'(a9,a)')trash1,filespec%title
-    do i=1,nl
-       read(filespec%fid,*)
-    end do
+
+    !bsa header
+    read(filespec%fid,*)
+    read(filespec%fid,'(a19,i2,a1,i2,a1,i2)')trash19,h,trash4,m,trash4,s
+    t0 = (h*60+m)*60+s
+    read(filespec%fid,*)
+    read(filespec%fid,*)
+
     read(filespec%fid,'(a12,a)')trash2,filespec%varnames
     read(filespec%fid,*)
 
