@@ -32,6 +32,7 @@ install:
 	ar rc libtecplot.a tecplot_io.o
 	ar rc libinterpol.a interpol.o
 	ar rc libstat.a lib_stat.o
+	ar rc libspectral.a lib_spectral.o
 	mv *.mod MOD/.
 	mv *.a LIB/.
 	rm -rf *.o *~ *.mod

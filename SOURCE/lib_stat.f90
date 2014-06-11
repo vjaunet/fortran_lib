@@ -125,6 +125,11 @@ contains
        ii = ii+1
     end do
 
+    !uncenter and unormallize var
+    do i=1,nc
+       var(:,i) = var(:,i)*stat(i+nc) + stat(i)
+    end do
+
     return
 
   end subroutine cal_stat_1d_nc
