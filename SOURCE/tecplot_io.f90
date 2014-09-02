@@ -108,12 +108,16 @@ module tecplot_IO
        fread_ascii_1d, dread_ascii_1d, iread_ascii_1d,&
        fread_ascii_2d,dread_ascii_2d,iread_ascii_2d,&
        fread_ascii_3d,dread_ascii_3d,iread_ascii_3d,&
-       tec_read_header_io, tec_read_header_BSA
+       tec_read_header_io, tec_read_header_BSA,&
+       tec_get_zone_1d, tec_get_zone_2d
 
   interface tec_read_header
      module procedure tec_read_header_io, tec_read_header_BSA
   end interface tec_read_header
 
+  interface tec_get_zone
+     module procedure tec_get_zone_1d,tec_get_zone_2d
+  end interface tec_get_zone
 
 
   interface tec_read_ascii
@@ -244,7 +248,7 @@ contains
   end subroutine tec_read_header_BSA
 
 
-  subroutine tec_get_zone(filespec,nx,nc,ny,nz,zone_title)
+  subroutine tec_get_zone_1d(filespec,nx,nc,zone_title)
     type(filetype)                      ::filespec
 
     character(len=250)                  ::zone
@@ -253,7 +257,6 @@ contains
     character(len=10)                   ::trash1
 
     integer(kind=8)                     ::nx,nc
-    integer(kind=8),    optional        ::ny,nz
     character(len=250), optional        ::zone_title
     !-----------------------------------------------
 
@@ -272,22 +275,81 @@ contains
     ii=0
     do while (i<len_trim(zone)-1)
 
-       if (zone(i:i+1) == '"') then
+       if (zone(i:i) == '"') then
           !get zone title
-
           ii = 0
-          do while (zone(i+ii+1:i+ii+1) == '"' &
-               .or. i+ii+1==len_trim(zone))
+          do while (zone(i+ii+1:i+ii+1) /= '"' &
+               .and. i+ii+1<len_trim(zone)+1)
              ii = ii+1
           end do
-          zone_title = adjustl(zone(i+2:i+ii))
+          if (present(zone_title)) then
+             zone_title = adjustl(zone(i+1:i+ii))
+          end if
+          ii=ii+1
 
        else if (zone(i:i+1) == 'I=') then
           !get nx
 
           ii = 1
           do while (zone(i+ii+1:i+ii+1) /= ',' &
-               .or. i+ii+1==len_trim(zone))
+               .and. i+ii+1<len_trim(zone)+1)
+             ii = ii+1
+          end do
+          trash1 = adjustl(zone(i+2:i+ii))
+          read(trash1,*)nx
+
+       end if
+
+       i = i+ii+1
+    end do
+
+  end subroutine tec_get_zone_1d
+
+  subroutine tec_get_zone_2d(filespec,nx,ny,nc,zone_title)
+    type(filetype)                      ::filespec
+
+    character(len=250)                  ::zone
+    integer                             ::i,ii
+    integer                             ::ios
+    character(len=10)                   ::trash1
+
+    integer(kind=8)                     ::nx,ny,nc
+    character(len=*), optional        ::zone_title
+    !-----------------------------------------------
+
+    !get the number of variables
+    ios = 0
+    i = 0
+    do ii=1,len_trim(filespec%varnames)
+       if (filespec%varnames(ii:ii) == '"') i=i+1
+    end do
+    nc = i/2
+
+    !read zone line and extract the data
+    read(filespec%fid,'(a)')zone
+
+    i=1
+    ii=0
+    do while (i<len_trim(zone)-1)
+
+       if (zone(i:i) == '"') then
+          !get zone title
+          ii = 0
+          do while (zone(i+ii+1:i+ii+1) /= '"' &
+               .and. i+ii+1<len_trim(zone)+1)
+             ii = ii+1
+          end do
+          if (present(zone_title)) then
+             zone_title = adjustl(zone(i+1:i+ii))
+          end if
+          ii=ii+1
+
+       else if (zone(i:i+1) == 'I=') then
+          !get nx
+
+          ii = 1
+          do while (zone(i+ii+1:i+ii+1) /= ',' &
+               .and. i+ii+1<len_trim(zone)+1)
              ii = ii+1
           end do
           trash1 = adjustl(zone(i+2:i+ii))
@@ -298,28 +360,20 @@ contains
 
           ii = 1
           do while (zone(i+ii+1:i+ii+1) /= ',' &
-               .or. i+ii+1==len_trim(zone))
+               .and. i+ii+1<len_trim(zone)+1)
              ii = ii+1
           end do
           trash1 = adjustl(zone(i+2:i+ii))
           read(trash1,*)ny
 
-       else if (zone(i:i+1) == "K=") then
-          !get nz
-
-          ii = 1
-          do while (zone(i+ii+1:i+ii+1) /= ',' &
-               .or. i+ii+1==len_trim(zone))
-             ii = ii+1
-          end do
-          trash1 = adjustl(zone(i+2:i+ii))
-          read(trash1,*)nz
        end if
 
        i = i+ii+1
+       ii=0
     end do
 
-  end subroutine tec_get_zone
+  end subroutine tec_get_zone_2d
+
 
 
   !==== Read 1D data ========================================
