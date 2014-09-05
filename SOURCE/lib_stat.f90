@@ -12,7 +12,7 @@ module lib_stat
   !*  contact: v.jaunet@gmail.com
   !*
   !!===========================================================
-  integer(kind=8), private ::i,j,k,ic,in,nn,nc,ii
+  integer(kind=8), private ::i,j,k,ic,in,nn,nc,ii,nx,ny
 
   public :: cal_statistics
 
@@ -21,6 +21,14 @@ module lib_stat
   interface cal_statistics
      module procedure cal_stat_1d_1c, cal_stat_1d_nc
   end interface cal_statistics
+
+  interface average
+     module procedure average_1d_1c
+  end interface average
+
+  interface rms
+     module procedure rms_1d_1c
+  end interface rms
 
 contains
 
@@ -133,6 +141,92 @@ contains
     return
 
   end subroutine cal_stat_1d_nc
+
+
+  subroutine average_1d_1c(var,moy,weight)
+    implicit none
+    real(kind=8)    ,dimension(:)                   ::var
+    real(kind=8)                                    ::moy,sumw
+    real(kind=8)    ,dimension(:)        ,optional  ::weight
+    real(kind=8)    ,dimension(:)     ,allocatable  ::w
+    !----------------------------------------------------------
+
+    nn = size(var,1)
+
+    allocate(w(nn))
+    if (present(weight)) then
+       w(:) = weight(:)
+    else
+       w(:) = 1.d0
+    end if
+
+    moy = 0.d0
+    sumw = sum(w(:))
+    if (sumw /= 0.d0) then
+       moy = sum(var(:)*w(:))/sumw
+    end if
+
+
+  end subroutine average_1d_1c
+
+  subroutine rms_1d_1c(var,rms,weight)
+    implicit none
+    real(kind=8)    ,dimension(:)                   ::var
+    real(kind=8)                                    ::rms
+    real(kind=8)                                    ::moy, sumw
+    real(kind=8)    ,dimension(:)        ,optional  ::weight
+    real(kind=8)    ,dimension(:)     ,allocatable  ::w
+    !----------------------------------------------------------
+
+    nn = size(var,1)
+
+    allocate(w(nn))
+    if (present(weight)) then
+       w(:) = weight(:)
+    else
+       w(:) = 1.d0
+    end if
+
+    call average_1d_1c(var,moy,w)
+
+    rms = 0.d0
+    sumw = sum(w(:))
+    if (sumw /= 0.d0) then
+       rms = sum((var(:)-moy)**2*w(:))/sumw
+       rms = sqrt(rms)
+    end if
+
+
+
+  end subroutine rms_1d_1c
+
+  subroutine rms_1d_1c_moy(var,moy,rms,weight)
+    implicit none
+    real(kind=8)    ,dimension(:)                   ::var
+    real(kind=8)                                    ::rms,sumw
+    real(kind=8)                                    ::moy
+    real(kind=8)    ,dimension(:)        ,optional  ::weight
+    real(kind=8)    ,dimension(:)     ,allocatable  ::w
+    !----------------------------------------------------------
+
+    nn = size(var,1)
+
+    allocate(w(nn))
+    if (present(weight)) then
+       w(:) = weight(:)
+    else
+       w(:) = 1.d0
+    end if
+
+    rms = 0.d0
+    sumw = sum(w(:))
+    if (sumw /= 0.d0) then
+       rms = sum((var(:)-moy)**2*w(:))/sumw
+       rms = sqrt(rms)
+    end if
+
+  end subroutine rms_1d_1c_moy
+
 
 
 end module lib_stat
