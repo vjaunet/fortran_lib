@@ -14,136 +14,23 @@ module lib_stat
   !!===========================================================
   integer(kind=8), private ::i,j,k,ic,in,nn,nc,ii,nx,ny
 
-  public :: cal_statistics
+  public :: average,rms
 
-  private :: cal_stat_1d_1c
-
-  interface cal_statistics
-     module procedure cal_stat_1d_1c, cal_stat_1d_nc
-  end interface cal_statistics
+  private :: d_average_1d_1c,d_rms_1d_1c,d_rms_1d_1c_moy,&
+       f_average_1d_1c,f_rms_1d_1c,f_rms_1d_1c_moy
 
   interface average
-     module procedure average_1d_1c
+     module procedure d_average_1d_1c,f_average_1d_1c
   end interface average
 
   interface rms
-     module procedure rms_1d_1c
+     module procedure d_rms_1d_1c,d_rms_1d_1c_moy
+     module procedure f_rms_1d_1c,f_rms_1d_1c_moy
   end interface rms
 
 contains
 
-  subroutine cal_stat_1d_1c(var,stat,weight)
-    implicit none
-    real(kind=8)    ,dimension(:)               ::var
-    real(kind=8)    ,dimension(4)               ::stat
-    real(kind=8)    ,dimension(:)    ,optional  ::weight
-    real(kind=8)    ,dimension(:) ,allocatable  ::w
-    !-------------------------------------------------
-
-    nn = size(var,1)
-
-    allocate(w(nn))
-    if (present(weight)) then
-       w(:) = weight(:)
-    else
-       w(:) = 1.d0
-    end if
-
-    stat(1) = sum(var(:)*w(:))/sum(w(:))
-    stat(2) = sum((var(:)-stat(1))**2*w(:))/sum(w(:))
-    stat(3) = sum(((var(:)-stat(1))/stat(2))**3*w(:))/sum(w(:))
-    stat(4) = sum(((var(:)-stat(1))/stat(2))**4*w(:))/sum(w(:))
-
-    return
-
-  end subroutine cal_stat_1d_1c
-
-  subroutine cal_stat_1d_nc(var,stat,weight)
-    implicit none
-    real(kind=8)    ,dimension(:,:)             ::var
-    real(kind=8)    ,dimension(:)               ::stat
-    real(kind=8)    ,dimension(:)    ,optional  ::weight
-    real(kind=8)    ,dimension(:) ,allocatable  ::w
-    integer(kind=8)                             ::nstat
-    !----------------------------------------------------
-
-    nn = size(var,1)
-    nc = size(var,2)
-    nstat = 0
-    do i=1,nc
-       do j=i,nc
-          nstat = nstat+1
-       end do
-    end do
-    nstat = nstat + 2*nc
-
-    if (size(stat) .lt. nstat) then
-       print*,'size(stat) must be ',nstat
-       stop
-    end if
-
-    stat = 0.d0
-
-    allocate(w(nn))
-    if (present(weight)) then
-       w(:) = weight(:)
-    else
-       w(:) = 1.d0
-    end if
-
-    !average
-    do ic=1,nc
-       stat(ic) = sum(var(:,ic)*w(:))/sum(w(:))
-    end do
-
-    !center the input variable
-    do ic=1,nc
-       var(:,ic) = var(:,ic) - stat(ic)
-    end do
-
-    !rms
-    do i=nc+1,2*nc
-       stat(i) = sum(var(:,i-nc)*var(:,i-nc)*w(:))/sum(w(:))
-       stat(i) = sqrt(stat(i))
-    end do
-
-    !cross-moments
-    ii=2*nc+1
-    do i=1,nc-1
-       do j=i+1,nc
-          stat(ii) = sum(var(:,i)*var(:,j)*w(:))/sum(w(:))
-          ii=ii+1
-       end do
-    end do
-
-    !normalize the variable
-    do i=1,nc
-       var(:,i) = var(:,i)/stat(i+nc)
-    end do
-
-    !skewness
-    do i=1,nc
-       stat(ii) = sum(var(:,i)**3*w(:))/sum(w(:))
-       ii = ii+1
-    end do
-
-    !flatness
-    do i=1,nc
-       stat(ii) = sum(var(:,i)**4*w(:))/sum(w(:))
-       ii = ii+1
-    end do
-
-    !uncenter and unormallize var
-    do i=1,nc
-       var(:,i) = var(:,i)*stat(i+nc) + stat(i)
-    end do
-
-    return
-
-  end subroutine cal_stat_1d_nc
-
-
-  subroutine average_1d_1c(var,moy,weight)
+  subroutine d_average_1d_1c(var,moy,weight)
     implicit none
     real(kind=8)    ,dimension(:)                   ::var
     real(kind=8)                                    ::moy,sumw
@@ -167,9 +54,35 @@ contains
     end if
 
 
-  end subroutine average_1d_1c
+  end subroutine d_average_1d_1c
 
-  subroutine rms_1d_1c(var,rms,weight)
+  subroutine f_average_1d_1c(var,moy,weight)
+    implicit none
+    real(kind=4)    ,dimension(:)                   ::var
+    real(kind=4)                                    ::moy,sumw
+    real(kind=4)    ,dimension(:)        ,optional  ::weight
+    real(kind=4)    ,dimension(:)     ,allocatable  ::w
+    !----------------------------------------------------------
+
+    nn = size(var,1)
+
+    allocate(w(nn))
+    if (present(weight)) then
+       w(:) = weight(:)
+    else
+       w(:) = 1.d0
+    end if
+
+    moy = 0.d0
+    sumw = sum(w(:))
+    if (sumw /= 0.d0) then
+       moy = sum(var(:)*w(:))/sumw
+    end if
+
+  end subroutine f_average_1d_1c
+
+
+  subroutine d_rms_1d_1c(var,rms,weight)
     implicit none
     real(kind=8)    ,dimension(:)                   ::var
     real(kind=8)                                    ::rms
@@ -187,7 +100,7 @@ contains
        w(:) = 1.d0
     end if
 
-    call average_1d_1c(var,moy,w)
+    call d_average_1d_1c(var,moy,w)
 
     rms = 0.d0
     sumw = sum(w(:))
@@ -198,9 +111,40 @@ contains
 
 
 
-  end subroutine rms_1d_1c
+  end subroutine d_rms_1d_1c
 
-  subroutine rms_1d_1c_moy(var,moy,rms,weight)
+  subroutine f_rms_1d_1c(var,rms,weight)
+    implicit none
+    real(kind=4)    ,dimension(:)                   ::var
+    real(kind=4)                                    ::rms
+    real(kind=4)                                    ::moy, sumw
+    real(kind=4)    ,dimension(:)        ,optional  ::weight
+    real(kind=4)    ,dimension(:)     ,allocatable  ::w
+    !----------------------------------------------------------
+
+    nn = size(var,1)
+
+    allocate(w(nn))
+    if (present(weight)) then
+       w(:) = weight(:)
+    else
+       w(:) = 1.d0
+    end if
+
+    call f_average_1d_1c(var,moy,w)
+
+    rms = 0.d0
+    sumw = sum(w(:))
+    if (sumw /= 0.d0) then
+       rms = sum((var(:)-moy)**2*w(:))/sumw
+       rms = sqrt(rms)
+    end if
+
+
+
+  end subroutine f_rms_1d_1c
+
+  subroutine d_rms_1d_1c_moy(var,moy,rms,weight)
     implicit none
     real(kind=8)    ,dimension(:)                   ::var
     real(kind=8)                                    ::rms,sumw
@@ -225,7 +169,34 @@ contains
        rms = sqrt(rms)
     end if
 
-  end subroutine rms_1d_1c_moy
+  end subroutine d_rms_1d_1c_moy
+
+  subroutine f_rms_1d_1c_moy(var,moy,rms,weight)
+    implicit none
+    real(kind=4)    ,dimension(:)                   ::var
+    real(kind=4)                                    ::rms,sumw
+    real(kind=4)                                    ::moy
+    real(kind=4)    ,dimension(:)        ,optional  ::weight
+    real(kind=4)    ,dimension(:)     ,allocatable  ::w
+    !----------------------------------------------------------
+
+    nn = size(var,1)
+
+    allocate(w(nn))
+    if (present(weight)) then
+       w(:) = weight(:)
+    else
+       w(:) = 1.d0
+    end if
+
+    rms = 0.d0
+    sumw = sum(w(:))
+    if (sumw /= 0.d0) then
+       rms = sum((var(:)-moy)**2*w(:))/sumw
+       rms = sqrt(rms)
+    end if
+
+  end subroutine f_rms_1d_1c_moy
 
 
 

@@ -26,7 +26,7 @@ module tecplot_IO
   !* !Defines the file parameters :
   !* ofile = filetype(filename = 'file.dat',&
   !*      RWaccess = 'W',& ! "W" for writting, "R" for reading, "" for both
-  !*      exist = 1,& ! if the file must exist, 0 if not
+  !*      exist = 1,& ! if the file must exist, 0 if not, -1 don't care
   !*      fid = 10,&       ! fid number
   !*      varnames = '"x" "y" "U" "V"',& !Varaible names as a string
   !*      title = 'Title')               !File title as string
@@ -147,33 +147,33 @@ contains
     type(filetype)                      ::filespec
     !--------------------------------------------
 
-    if (filespec%exist == 1) then
-       if (filespec%RWaccess == 'R') then
-          open (unit=filespec%fid,&
-               file = trim(filespec%filename),&
+    if (filespec.exist == 1) then
+       if (filespec.RWaccess == 'R') then
+          open (unit=filespec.fid,&
+               file = trim(filespec.filename),&
                status = 'old',&
                action='read')
-       elseif (filespec%RWaccess == 'W') then
-          open (unit=filespec%fid,&
-               file = trim(filespec%filename),&
+       elseif (filespec.RWaccess == 'W') then
+          open (unit=filespec.fid,&
+               file = trim(filespec.filename),&
                status = 'old',&
                action='write')
        end if
-    elseif (filespec%exist == 0) then
-       if (filespec%RWaccess == 'R') then
-          open (unit=filespec%fid,&
-               file = trim(filespec%filename),&
+    elseif (filespec.exist == 0) then
+       if (filespec.RWaccess == 'R') then
+          open (unit=filespec.fid,&
+               file = trim(filespec.filename),&
                status = 'new',&
                action='read')
-       elseif (filespec%RWaccess == 'W') then
-          open (unit=filespec%fid,&
-               file = trim(filespec%filename),&
+       elseif (filespec.RWaccess == 'W') then
+          open (unit=filespec.fid,&
+               file = trim(filespec.filename),&
                status = 'new',&
                action='write')
        end if
     else
-       open (unit=filespec%fid,&
-            file = trim(filespec%filename))
+       open (unit=filespec.fid,&
+            file = trim(filespec.filename))
     end if
 
   end subroutine tec_openfile
@@ -183,7 +183,7 @@ contains
     type(filetype)                      ::filespec
     !--------------------------------------------
 
-    close(filespec%fid)
+    close(filespec.fid)
 
   end subroutine tec_closefile
 
@@ -197,8 +197,8 @@ contains
     type(filetype)                      ::filespec
     !--------------------------------------------
 
-    write(filespec%fid,'(a,a,a)')'Title = "',trim(filespec%title),'"'
-    write(filespec%fid,'(a,a)')'Variables = ',trim(filespec%varnames)
+    write(filespec.fid,'(a,a,a)')'Title = "',trim(filespec.title),'"'
+    write(filespec.fid,'(a,a)')'Variables = ',trim(filespec.varnames)
 
   end subroutine tec_write_header
 
@@ -210,11 +210,11 @@ contains
     !--------------------------------------------
 
     !read title and variable names
-    read(filespec%fid,'(a9,a)')trash1,filespec%title
-    read(filespec%fid,'(a12,a)')trash2,filespec%varnames
+    read(filespec.fid,'(a9,a)')trash1,filespec.title
+    read(filespec.fid,'(a12,a)')trash2,filespec.varnames
 
     !Remove remaining " from title
-    filespec%title = filespec%title(1:len_trim(filespec%title)-1)
+    filespec.title = filespec.title(1:len_trim(filespec.title)-1)
 
   end subroutine tec_read_header_io
 
@@ -230,20 +230,20 @@ contains
     real(kind=8)                        ::t0
     !--------------------------------------------
 
-    read(filespec%fid,'(a9,a)')trash1,filespec%title
+    read(filespec.fid,'(a9,a)')trash1,filespec.title
 
     !bsa header
-    read(filespec%fid,*)
-    read(filespec%fid,'(a18,i2,a1,i2,a1,i2)')trash18,h,trash4,m,trash4,s
+    read(filespec.fid,*)
+    read(filespec.fid,'(a18,i2,a1,i2,a1,i2)')trash18,h,trash4,m,trash4,s
     t0 = (h*60+m)*60+s
-    read(filespec%fid,*)
-    read(filespec%fid,*)
+    read(filespec.fid,*)
+    read(filespec.fid,*)
 
-    read(filespec%fid,'(a12,a)')trash2,filespec%varnames
-    read(filespec%fid,*)
+    read(filespec.fid,'(a12,a)')trash2,filespec.varnames
+    read(filespec.fid,*)
 
     !Remove remaining " from title
-    filespec%title = filespec%title(1:len_trim(filespec%title)-1)
+    filespec.title = filespec.title(1:len_trim(filespec.title)-1)
 
   end subroutine tec_read_header_BSA
 
@@ -263,13 +263,13 @@ contains
     !get the number of variables
     ios = 0
     i = 0
-    do ii=1,len_trim(filespec%varnames)
-       if (filespec%varnames(ii:ii) == '"') i=i+1
+    do ii=1,len_trim(filespec.varnames)
+       if (filespec.varnames(ii:ii) == '"') i=i+1
     end do
     nc = i/2
 
     !read zone line and extract the data
-    read(filespec%fid,'(a)')zone
+    read(filespec.fid,'(a)')zone
 
     i=1
     ii=0
@@ -320,13 +320,13 @@ contains
     !get the number of variables
     ios = 0
     i = 0
-    do ii=1,len_trim(filespec%varnames)
-       if (filespec%varnames(ii:ii) == '"') i=i+1
+    do ii=1,len_trim(filespec.varnames)
+       if (filespec.varnames(ii:ii) == '"') i=i+1
     end do
     nc = i/2
 
     !read zone line and extract the data
-    read(filespec%fid,'(a)')zone
+    read(filespec.fid,'(a)')zone
 
     i=1
     ii=0
@@ -392,7 +392,7 @@ contains
     nc = size(tab,2)
 
     do in=1,nn
-       read(filespec%fid,*)(tab(in,ic),ic=1,nc)
+       read(filespec.fid,*)(tab(in,ic),ic=1,nc)
     end do
 
   end subroutine fread_ascii_1d
@@ -408,7 +408,7 @@ contains
     nc = size(tab,2)
 
     do in=1,nn
-       read(filespec%fid,*)(tab(in,ic),ic=1,nc)
+       read(filespec.fid,*)(tab(in,ic),ic=1,nc)
     end do
 
   end subroutine dread_ascii_1d
@@ -424,7 +424,7 @@ contains
     nc = size(tab,2)
 
     do in=1,nn
-       read(filespec%fid,*)(tab(in,ic),ic=1,nc)
+       read(filespec.fid,*)(tab(in,ic),ic=1,nc)
     end do
 
   end subroutine iread_ascii_1d
@@ -447,7 +447,7 @@ contains
 
     do j=1,nj
        do i=1,ni
-          read(filespec%fid,*)(tab(i,j,ic),ic=1,nc)
+          read(filespec.fid,*)(tab(i,j,ic),ic=1,nc)
        end do
     end do
 
@@ -466,7 +466,7 @@ contains
 
     do j=1,nj
        do i=1,ni
-          read(filespec%fid,*)(tab(i,j,ic),ic=1,nc)
+          read(filespec.fid,*)(tab(i,j,ic),ic=1,nc)
        end do
     end do
 
@@ -485,7 +485,7 @@ contains
 
     do j=1,nj
        do i=1,ni
-          read(filespec%fid,*)(tab(i,j,ic),ic=1,nc)
+          read(filespec.fid,*)(tab(i,j,ic),ic=1,nc)
        end do
     end do
 
@@ -511,7 +511,7 @@ contains
     do k=1,nk
        do j=1,nj
           do i=1,ni
-             read(filespec%fid,*)(tab(i,j,k,ic),ic=1,nc)
+             read(filespec.fid,*)(tab(i,j,k,ic),ic=1,nc)
           end do
        end do
     end do
@@ -533,7 +533,7 @@ contains
     do k=1,nk
        do j=1,nj
           do i=1,ni
-             read(filespec%fid,*)(tab(i,j,k,ic),ic=1,nc)
+             read(filespec.fid,*)(tab(i,j,k,ic),ic=1,nc)
           end do
        end do
     end do
@@ -555,7 +555,7 @@ contains
     do k=1,nk
        do j=1,nj
           do i=1,ni
-             read(filespec%fid,*)(tab(i,j,k,ic),ic=1,nc)
+             read(filespec.fid,*)(tab(i,j,k,ic),ic=1,nc)
           end do
        end do
     end do
@@ -585,18 +585,18 @@ contains
 1665 format (a,a,a,i0)
 
     if (present(zonetitle)) then
-       write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
+       write(filespec.fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
     else
-       write(filespec%fid,1665)'Zone T="", I=',nn
+       write(filespec.fid,1665)'Zone T="", I=',nn
     end if
 
     if (present(t)) then
        do in=1,nn
-          write(filespec%fid,1664)t(in),(tab(in,ic),ic=1,nc)
+          write(filespec.fid,1664)t(in),(tab(in,ic),ic=1,nc)
        end do
     else
        do in=1,nn
-          write(filespec%fid,1664)(tab(in,ic),ic=1,nc)
+          write(filespec.fid,1664)(tab(in,ic),ic=1,nc)
        end do
     end if
 
@@ -618,18 +618,18 @@ contains
 1665 format (a,a,a,i0)
 
     if (present(zonetitle)) then
-       write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
+       write(filespec.fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
     else
-       write(filespec%fid,1665)'Zone T="", I=',nn
+       write(filespec.fid,1665)'Zone T="", I=',nn
     end if
 
     if (present(t)) then
        do in=1,nn
-          write(filespec%fid,1664)t(in),(tab(in,ic),ic=1,nc)
+          write(filespec.fid,1664)t(in),(tab(in,ic),ic=1,nc)
        end do
     else
        do in=1,nn
-          write(filespec%fid,1664)(tab(in,ic),ic=1,nc)
+          write(filespec.fid,1664)(tab(in,ic),ic=1,nc)
        end do
     end if
 
@@ -651,18 +651,18 @@ contains
 1665 format (a,a,a,i0)
 
     if (present(zonetitle)) then
-       write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
+       write(filespec.fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
     else
-       write(filespec%fid,1665)'Zone T="", I=',nn
+       write(filespec.fid,1665)'Zone T="", I=',nn
     end if
 
     if (present(t)) then
        do in=1,nn
-          write(filespec%fid,1664)t(in),(tab(in,ic),ic=1,nc)
+          write(filespec.fid,1664)t(in),(tab(in,ic),ic=1,nc)
        end do
     else
        do in=1,nn
-          write(filespec%fid,1664)(tab(in,ic),ic=1,nc)
+          write(filespec.fid,1664)(tab(in,ic),ic=1,nc)
        end do
     end if
 
@@ -686,19 +686,19 @@ contains
 1665 format (a,a,a,i0)
 
     if (present(zonetitle)) then
-       write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
+       write(filespec.fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
     else
-       write(filespec%fid,1665)'Zone T="", I=',nn
+       write(filespec.fid,1665)'Zone T="", I=',nn
     end if
 
     if (present(tab)) then
        do in=1,nn
-          write(filespec%fid,1664)t(in),tab(in)
+          write(filespec.fid,1664)t(in),tab(in)
        end do
 
     else
        do in=1,nn
-          write(filespec%fid,1664)t(in)
+          write(filespec.fid,1664)t(in)
        end do
     end if
 
@@ -719,18 +719,18 @@ contains
 1665 format (a,a,a,i0)
 
     if (present(zonetitle)) then
-       write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
+       write(filespec.fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
     else
-       write(filespec%fid,'(a,i0)')'Zone T="", I=',nn
+       write(filespec.fid,'(a,i0)')'Zone T="", I=',nn
     end if
 
     !    if (present(tab)) then
     do in=1,nn
-       write(filespec%fid,1664)t(in),tab(in)
+       write(filespec.fid,1664)t(in),tab(in)
     end do
     ! else
     !    do in=1,nn
-    !       write(filespec%fid,1664)t(in)
+    !       write(filespec.fid,1664)t(in)
     !    end do
     ! end if
 
@@ -751,19 +751,19 @@ contains
 1665 format (a,a,a,i0)
 
     if (present(zonetitle)) then
-       write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
+       write(filespec.fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
     else
-       write(filespec%fid,1665)'Zone T="", I=',nn
+       write(filespec.fid,1665)'Zone T="", I=',nn
     end if
 
     if (present(tab)) then
        do in=1,nn
-          write(filespec%fid,1664)t(in),tab(in)
+          write(filespec.fid,1664)t(in),tab(in)
        end do
 
     else
        do in=1,nn
-          write(filespec%fid,1664)t(in)
+          write(filespec.fid,1664)t(in)
        end do
     end if
 
@@ -789,13 +789,13 @@ contains
 1665 format (a,a,a,i0)
 
     if (present(zonetitle)) then
-       write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
+       write(filespec.fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
     else
-       write(filespec%fid,1665)'Zone T="", I=',nn
+       write(filespec.fid,1665)'Zone T="", I=',nn
     end if
 
     do in=1,nn
-       write(filespec%fid,1664)(t(in,ic),ic=1,nx),(tab(in,ic),ic=1,nc)
+       write(filespec.fid,1664)(t(in,ic),ic=1,nx),(tab(in,ic),ic=1,nc)
     end do
 
   end subroutine dwrite_ascii_1d_2
@@ -823,22 +823,22 @@ contains
     nx=size(x,3)
 
     if (present(zonetitle)) then
-       write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',ni,', J=',nj
+       write(filespec.fid,1665)'Zone T="',trim(zonetitle),'", I=',ni,', J=',nj
     else
-       write(filespec%fid,1665)'Zone T="',&
+       write(filespec.fid,1665)'Zone T="',&
             '", I=',ni,', J=',nj
     end if
 
     if (present(x)) then
        do j=1,nj
           do i=1,ni
-             write(filespec%fid,1664)(x(i,j,ix),ix=1,nx),(tab(i,j,ic),ic=1,nc)
+             write(filespec.fid,1664)(x(i,j,ix),ix=1,nx),(tab(i,j,ic),ic=1,nc)
           end do
        end do
     else
        do j=1,nj
           do i=1,ni
-             write(filespec%fid,1664)(tab(i,j,ic),ic=1,nc)
+             write(filespec.fid,1664)(tab(i,j,ic),ic=1,nc)
           end do
        end do
     end if
@@ -864,21 +864,21 @@ contains
     nx=size(x,3)
 
     if (present(zonetitle)) then
-       write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',ni,', J=',nj
+       write(filespec.fid,1665)'Zone T="',trim(zonetitle),'", I=',ni,', J=',nj
     else
-       write(filespec%fid,1665)'Zone T="", I=',ni,', J=',nj
+       write(filespec.fid,1665)'Zone T="", I=',ni,', J=',nj
     end if
 
     if (present(x)) then
        do j=1,nj
           do i=1,ni
-             write(filespec%fid,1664)(x(i,j,ix),ix=1,nx),(tab(i,j,ic),ic=1,nc)
+             write(filespec.fid,1664)(x(i,j,ix),ix=1,nx),(tab(i,j,ic),ic=1,nc)
           end do
        end do
     else
        do j=1,nj
           do i=1,ni
-             write(filespec%fid,1664)(tab(i,j,ic),ic=1,nc)
+             write(filespec.fid,1664)(tab(i,j,ic),ic=1,nc)
           end do
        end do
     end if
@@ -902,22 +902,22 @@ contains
     nx=size(x,3)
 
     if (present(zonetitle)) then
-       write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',ni,', J=',nj
+       write(filespec.fid,1665)'Zone T="',trim(zonetitle),'", I=',ni,', J=',nj
     else
-       write(filespec%fid,1665)'Zone T="',&
+       write(filespec.fid,1665)'Zone T="',&
             '", I=',ni,', J=',nj
     end if
 
     if (present(x)) then
        do j=1,nj
           do i=1,ni
-             write(filespec%fid,1664)(x(i,j,ix),ix=1,nx),(tab(i,j,ic),ic=1,nc)
+             write(filespec.fid,1664)(x(i,j,ix),ix=1,nx),(tab(i,j,ic),ic=1,nc)
           end do
        end do
     else
        do j=1,nj
           do i=1,ni
-             write(filespec%fid,1664)(tab(i,j,ic),ic=1,nc)
+             write(filespec.fid,1664)(tab(i,j,ic),ic=1,nc)
           end do
        end do
     end if
@@ -942,21 +942,21 @@ contains
     nx=size(x,3)
 
     if (present(zonetitle)) then
-       write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',ni,', J=',nj
+       write(filespec.fid,1665)'Zone T="',trim(zonetitle),'", I=',ni,', J=',nj
     else
-       write(filespec%fid,1665)'Zone T="", I=',ni,', J=',nj
+       write(filespec.fid,1665)'Zone T="", I=',ni,', J=',nj
     end if
 
     ! if (present(x)) then
     do j=1,nj
        do i=1,ni
-          write(filespec%fid,1664)(x(i,j,ix),ix=1,nx),tab(i,j)
+          write(filespec.fid,1664)(x(i,j,ix),ix=1,nx),tab(i,j)
        end do
     end do
     ! else
     !    do j=1,nj
     !       do i=1,ni
-    !          write(filespec%fid,1664)tab(i,j)
+    !          write(filespec.fid,1664)tab(i,j)
     !       end do
     !    end do
     ! end if
@@ -987,10 +987,10 @@ contains
     nc=size(tab,4)
 
     if (present(zonetitle)) then
-       write(filespec%fid,1665)'Zone T="',trim(zonetitle),&
+       write(filespec.fid,1665)'Zone T="',trim(zonetitle),&
             '", I=',ni,', J=',nj,', K=',nk
     else
-       write(filespec%fid,1665)'Zone T="',&
+       write(filespec.fid,1665)'Zone T="',&
             '", I=',ni,', J=',nj,', K=',nk
     end if
 
@@ -998,7 +998,7 @@ contains
        do k=1,nk
           do j=1,nj
              do i=1,ni
-                write(filespec%fid,1664)(x(i,j,k,ic),ic=1,nc),(tab(i,j,k,ic),ic=1,nc)
+                write(filespec.fid,1664)(x(i,j,k,ic),ic=1,nc),(tab(i,j,k,ic),ic=1,nc)
              end do
           end do
        end do
@@ -1006,7 +1006,7 @@ contains
        do k=1,nk
           do j=1,nj
              do i=1,ni
-                write(filespec%fid,1664)(tab(i,j,k,ic),ic=1,nc)
+                write(filespec.fid,1664)(tab(i,j,k,ic),ic=1,nc)
              end do
           end do
        end do
@@ -1031,17 +1031,17 @@ contains
     nc=size(tab,4)
 
     if (present(zonetitle)) then
-       write(filespec%fid,1665)'Zone T="',trim(zonetitle),&
+       write(filespec.fid,1665)'Zone T="',trim(zonetitle),&
             '", I=',ni,', J=',nj,', K=',nk
     else
-       write(filespec%fid,1665)'Zone T="',&
+       write(filespec.fid,1665)'Zone T="',&
             '", I=',ni,', J=',nj,', K=',nk
     end if
     if (present(x)) then
        do k=1,nk
           do j=1,nj
              do i=1,ni
-                write(filespec%fid,1664)(x(i,j,k,ic),ic=1,nc),(tab(i,j,k,ic),ic=1,nc)
+                write(filespec.fid,1664)(x(i,j,k,ic),ic=1,nc),(tab(i,j,k,ic),ic=1,nc)
              end do
           end do
        end do
@@ -1049,7 +1049,7 @@ contains
        do k=1,nk
           do j=1,nj
              do i=1,ni
-                write(filespec%fid,1664)(tab(i,j,k,ic),ic=1,nc)
+                write(filespec.fid,1664)(tab(i,j,k,ic),ic=1,nc)
              end do
           end do
        end do
@@ -1075,10 +1075,10 @@ contains
     nc=size(tab,4)
 
     if (present(zonetitle)) then
-       write(filespec%fid,1665)'Zone T="',trim(zonetitle),&
+       write(filespec.fid,1665)'Zone T="',trim(zonetitle),&
             '", I=',ni,', J=',nj,', K=',nk
     else
-       write(filespec%fid,1665)'Zone T="',&
+       write(filespec.fid,1665)'Zone T="',&
             '", I=',ni,', J=',nj,', K=',nk
     end if
 
@@ -1086,7 +1086,7 @@ contains
        do k=1,nk
           do j=1,nj
              do i=1,ni
-                write(filespec%fid,1664)(x(i,j,k,ic),ic=1,nc),(tab(i,j,k,ic),ic=1,nc)
+                write(filespec.fid,1664)(x(i,j,k,ic),ic=1,nc),(tab(i,j,k,ic),ic=1,nc)
              end do
           end do
        end do
@@ -1094,7 +1094,7 @@ contains
        do k=1,nk
           do j=1,nj
              do i=1,ni
-                write(filespec%fid,1664)(tab(i,j,k,ic),ic=1,nc)
+                write(filespec.fid,1664)(tab(i,j,k,ic),ic=1,nc)
              end do
           end do
        end do
