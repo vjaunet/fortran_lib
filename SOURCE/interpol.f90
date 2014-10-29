@@ -192,6 +192,130 @@ contains
   end subroutine d_bicubic_interp_2d
 
 
+  subroutine f_bicubic_interp_2d(x,y,xint,yint)
+    implicit none
+    real(kind=4)    ,dimension(:,:,:)               ::x
+    real(kind=4)    ,dimension(:,:)                 ::y
+
+    real(kind=8)    ,dimension(:,:,:) ,allocatable  ::dy
+    real(kind=8)    ,dimension(:,:)   ,allocatable  ::A
+    real(kind=8)    ,dimension(:)     ,allocatable  ::B
+    real(kind=8)    ,dimension(:)     ,allocatable  ::alpha
+
+    real(kind=8)    ,dimension(:,:)   ,allocatable  ::dist
+    real(kind=8)    ,dimension(2,2,2)               ::xtmp
+    real(kind=8)    ,dimension(2,2,3)               ::dytmp
+    real(kind=8)    ,dimension(2,2)                 ::ytmp
+    integer(kind=8) ,dimension(2)                   ::itmp
+    real(kind=8)                                    ::gdx,gdy
+
+    real(kind=4)    ,dimension(:,:,:)               ::xint
+    real(kind=4)    ,dimension(:,:)                 ::yint
+
+    real(kind=8)                                    ::trash
+    integer(kind=8)                                 ::nx,ny
+    integer(kind=8)                                 ::nxint,nyint
+    integer(kind=8)                                 ::ii
+    !-------------------------------------------------------------
+
+    nx = size(x,1)
+    ny = size(x,2)
+    nxint = size(xint,1)
+    nyint = size(xint,2)
+
+    allocate(dy(nx,ny,3))
+
+    !compute gradients along x1 : dy/dx1
+    call diff(dble(y),nx,ny,dy(:,:,1),'X')
+    !compute gradients along x2 ; dy/dx2
+    call diff(dble(y),nx,ny,dy(:,:,2),'Y')
+    !computes cros gradients : d(dy/dx)/dy = dy/dx1dx2
+    call diff(dy(:,:,1),nx,ny,dy(:,:,3),'Y')
+
+    allocate(A(16,16))
+    call fillA(A)
+    allocate(B(16),alpha(16))
+
+    allocate(dist(nx,ny))
+    do iint=1,nxint
+       do jint=1,nyint
+
+          !computes distance between POI and all data
+          dist = 0.d0
+          do i=1,nx
+             do j=1,ny
+
+                do ic=1,2
+                   dist(i,j) = dist(i,j) + &
+                        (x(i,j,ic)-xint(iint,jint,ic))**2
+                end do
+                dist(i,j) = dsqrt(dist(i,j))
+
+             end do
+          end do
+
+          !localization of the surrounding 4 interpolant points
+          itmp = minloc(dist)
+          if (minval(dist) ==0.d0) then
+             !the interpolated point is loacated on an interpolant
+             !get the exact value
+             yint(iint,jint) = y(itmp(1),itmp(2))
+
+          else
+
+             !get the values of the surrounding interpolants
+             call get_4neighbors(itmp,dble(xint(iint,jint,:)),&
+                  dble(x),dble(y),dy,xtmp,ytmp,dytmp)
+
+             !get the bicubic interpolation coefficient alpha
+             call fillB(B,ytmp,dytmp(:,:,1),dytmp(:,:,2),dytmp(:,:,3))
+             alpha = 0.d0
+             do i=1,16
+                do j=1,16
+                   alpha(i) = alpha(i) + A(i,j)*B(j)
+                end do
+             end do
+
+             !get distance to compute the interpolation
+             gdx = xint(iint,jint,1)- xtmp(1,1,1)
+             gdx = gdx/(xtmp(2,2,1) - xtmp(1,1,1))
+             gdy = xint(iint,jint,2) - xtmp(1,1,2)
+             gdy = gdy/(xtmp(2,2,2) - xtmp(1,1,2))
+
+             !Interpolate
+             yint(iint,jint) = 0.d0
+             ii = 1
+             do j=0,3
+                do i=0,3
+                   yint(iint,jint) = yint(iint,jint) + &
+                        alpha(ii) * gdx**i * gdy**j
+                   ii=ii+1
+                end do
+             end do
+
+             !for debugging
+             ! if (isnan(yint(iint,jint))) then
+             !    print*,itmp(1),itmp(2)
+             !    print*,xint(iint,jint,1),xint(iint,jint,1)
+             !    ! pause
+             !    yint(iint,jint) = -10.d0
+             ! end if
+
+          end if
+
+       end do !end loop on interpolated data
+    end do !end loop on interpolated data
+
+
+    deallocate(dy)
+    deallocate(A)
+    deallocate(B)
+    deallocate(alpha)
+    deallocate(dist)
+
+  end subroutine f_bicubic_interp_2d
+
+
   !=============Spline Interpolation of 1D data ===================
   !*
   !*
