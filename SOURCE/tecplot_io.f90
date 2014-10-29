@@ -116,7 +116,7 @@ module tecplot_IO
   end interface tec_read_header
 
   interface tec_get_zone
-     module procedure tec_get_zone_1d,tec_get_zone_2d
+     module procedure tec_get_zone_1d,tec_get_zone_2d,tec_get_zone_2d_s
   end interface tec_get_zone
 
 
@@ -373,6 +373,75 @@ contains
     end do
 
   end subroutine tec_get_zone_2d
+
+  subroutine tec_get_zone_2d_s(filespec,nx,ny,nc,zone_title)
+    type(filetype)                      ::filespec
+
+    character(len=250)                  ::zone
+    integer                             ::i,ii
+    integer                             ::ios
+    character(len=10)                   ::trash1
+
+    integer(kind=4)                     ::nx,ny,nc
+    character(len=*), optional        ::zone_title
+    !-----------------------------------------------
+
+    !get the number of variables
+    ios = 0
+    i = 0
+    do ii=1,len_trim(filespec.varnames)
+       if (filespec.varnames(ii:ii) == '"') i=i+1
+    end do
+    nc = i/2
+
+    !read zone line and extract the data
+    read(filespec.fid,'(a)')zone
+
+    i=1
+    ii=0
+    do while (i<len_trim(zone)-1)
+
+       if (zone(i:i) == '"') then
+          !get zone title
+          ii = 0
+          do while (zone(i+ii+1:i+ii+1) /= '"' &
+               .and. i+ii+1<len_trim(zone)+1)
+             ii = ii+1
+          end do
+          if (present(zone_title)) then
+             zone_title = adjustl(zone(i+1:i+ii))
+          end if
+          ii=ii+1
+
+       else if (zone(i:i+1) == 'I=') then
+          !get nx
+
+          ii = 1
+          do while (zone(i+ii+1:i+ii+1) /= ',' &
+               .and. i+ii+1<len_trim(zone)+1)
+             ii = ii+1
+          end do
+          trash1 = adjustl(zone(i+2:i+ii))
+          read(trash1,*)nx
+
+       else if (zone(i:i+1) == "J=") then
+          !get ny
+
+          ii = 1
+          do while (zone(i+ii+1:i+ii+1) /= ',' &
+               .and. i+ii+1<len_trim(zone)+1)
+             ii = ii+1
+          end do
+          trash1 = adjustl(zone(i+2:i+ii))
+          read(trash1,*)ny
+
+       end if
+
+       i = i+ii+1
+       ii=0
+    end do
+
+  end subroutine tec_get_zone_2d_s
 
 
 
