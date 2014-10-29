@@ -58,7 +58,7 @@ module interpol
   end interface inv_dist_inter
 
   interface bicubic_inter
-     module procedure d_bicubic_interp_2d
+     module procedure d_bicubic_interp_2d, f_bicubic_interp_2d
   end interface bicubic_inter
 
 contains

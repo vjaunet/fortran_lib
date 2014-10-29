@@ -130,7 +130,7 @@ module tecplot_IO
      module procedure fwrite_ascii_1d, dwrite_ascii_1d_2, dwrite_ascii_1d, iwrite_ascii_1d,&
           fwrite_ascii_1d_1c, dwrite_ascii_1d_1c, iwrite_ascii_1d_1c,&
           fwrite_ascii_2d,dwrite_ascii_2d,iwrite_ascii_2d,&
-          dwrite_ascii_2d_1c,&
+          fwrite_ascii_2d_1c, dwrite_ascii_2d_1c,&
           fwrite_ascii_3d,dwrite_ascii_3d,iwrite_ascii_3d
   end interface tec_write_ascii
 
@@ -913,6 +913,37 @@ contains
     end if
 
   end subroutine fwrite_ascii_2d
+
+  subroutine fwrite_ascii_2d_1c(filespec,x,tab,zonetitle)
+    implicit none
+    type(filetype)                                  ::filespec
+    real, intent(in), dimension(:,:,:)              ::x
+    real, intent(in), dimension(:,:)                ::tab
+    character(len=*)                  ,  optional   ::zonetitle
+    integer(kind=8)                                 ::ni,nj,nc,nx
+    !-------------------------------------------------------------
+
+1664 format (<2*nc>(e15.8,2x))
+1665 format (a,a,a,i0,a,i0)
+
+    ni=size(x,1)
+    nj=size(x,2)
+    nx=size(x,3)
+
+    if (present(zonetitle)) then
+       write(filespec.fid,1665)'Zone T="',trim(zonetitle),'", I=',ni,', J=',nj
+    else
+       write(filespec.fid,1665)'Zone T="',&
+            '", I=',ni,', J=',nj
+    end if
+
+    do j=1,nj
+       do i=1,ni
+          write(filespec.fid,1664)(x(i,j,ix),ix=1,nx),tab(i,j)
+       end do
+    end do
+
+  end subroutine fwrite_ascii_2d_1c
 
   subroutine dwrite_ascii_2d(filespec,x,tab,zonetitle)
     implicit none
