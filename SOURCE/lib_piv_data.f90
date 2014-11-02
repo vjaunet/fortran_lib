@@ -16,8 +16,11 @@ module lib_piv_data
   integer, private :: i,j,ic,is
 
   type PIVdata
+     character ::typeofgrid="C"
      integer   ::nx,ny,nsamples,ncomponent,pixel_step
      real      ::dx,x0,dy,y0,du,u0 !for scaling
+     integer   ::ntheta,nr
+     real      ::dr,dtheta
      real      ::z_pos,fs
      real, dimension(:,:,:,:), allocatable ::u
      real, dimension(:,:,:),   allocatable ::x
@@ -93,20 +96,39 @@ contains
     class(PIVdata)                     ::datapiv
     !-----------------------------------------------
 
-    !fill in x
-    allocate(datapiv.x(datapiv.nx,&
-         datapiv.ny,&
-         datapiv.ncomponent))
-    do i=1,datapiv.nx
-       do j=1,datapiv.ny
-          datapiv.x(i,j,1) = real(i*datapiv.pixel_step) * datapiv.dx + datapiv.x0
-          datapiv.x(i,j,2) = real(j*datapiv.pixel_step) * datapiv.dy + datapiv.y0
-          datapiv.x(i,j,3) = datapiv.z_pos
+    if (datapiv.typeofgrid == "C") then
+
+       !fill in x for cartesian coodinate systeme
+       allocate(datapiv.x(datapiv.nx,&
+            datapiv.ny,&
+            datapiv.ncomponent))
+       do i=1,datapiv.nx
+          do j=1,datapiv.ny
+             datapiv.x(i,j,1) = real(i*datapiv.pixel_step) * datapiv.dx + datapiv.x0
+             datapiv.x(i,j,2) = real(j*datapiv.pixel_step) * datapiv.dy + datapiv.y0
+             datapiv.x(i,j,3) = datapiv.z_pos
+          end do
        end do
-    end do
+
+    else if (datapiv.typeofgrid == "P") then
+       !fill in x for polar coodinate systeme
+       allocate(datapiv.x(datapiv.nr,&
+            datapiv.ntheta,&
+            datapiv.ncomponent))
+       do i=1,datapiv.nx
+          do j=1,datapiv.ny
+             datapiv.x(i,j,1) = i * datapiv.dr * cos((j-1)*datapiv.dtheta)
+             datapiv.x(i,j,2) = i * datapiv.dr * sin((j-1)*datapiv.dtheta)
+             datapiv.x(i,j,3) = datapiv.z_pos
+          end do
+       end do
+
+    else
+       write(06,*)"piv_io_read : impossible to define the type of grid"
+       STOP
+    end if
 
   end subroutine piv_set_x
-
 
   subroutine piv_stats(datapiv)
     class(PIVdata)                     ::datapiv
@@ -142,6 +164,24 @@ contains
             action='read', access='stream', status='old')
 
        !read datapiv info header
+       if (datapiv.typeofgrid == "P") then
+          read(110)datapiv.nr, datapiv.ntheta,&
+               datapiv.ncomponent,datapiv.nsamples,&
+               datapiv.dr, datapiv.dtheta,&
+               datapiv.fs
+
+       else if (datapiv.typeofgrid == "C") then
+
+          read(110)datapiv.nx, datapiv.ny,&
+               datapiv.ncomponent,datapiv.nsamples,&
+               datapiv.dx, datapiv.dy,&
+               datapiv.x0, datapiv.y0,&
+               datapiv.pixel_step,datapiv.fs
+       else
+          write(06,*)"piv_io_read : impossible to define the type of grid"
+          STOP
+       end if
+
        read(110)datapiv.nx, datapiv.ny,&
             datapiv.ncomponent,datapiv.nsamples,&
             datapiv.dx, datapiv.dy,&
@@ -169,26 +209,31 @@ contains
     logical                            ::file_exists
     !----------------------------------------------
 
-    !check existence of binary data file
-    ! inquire(file=trim(filename), EXIST=file_exists)
-    ! if (.not.file_exists) then
-
     open(unit=110,file=trim(filename),form='unformatted',&
          action='write', access='stream', status='unknown')
 
     !write datapiv info header
-    write(110)datapiv.nx, datapiv.ny,&
-         datapiv.ncomponent,datapiv.nsamples,&
-         datapiv.dx, datapiv.dy,&
-         datapiv.x0, datapiv.y0,&
-         datapiv.pixel_step,datapiv.fs
+    if (datapiv.typeofgrid == "P") then
+       write(110)datapiv.nr, datapiv.ntheta,&
+            datapiv.ncomponent,datapiv.nsamples,&
+            datapiv.dr, datapiv.dtheta,&
+            datapiv.fs
+
+    else if (datapiv.typeofgrid == "C") then
+
+       write(110)datapiv.nx, datapiv.ny,&
+            datapiv.ncomponent,datapiv.nsamples,&
+            datapiv.dx, datapiv.dy,&
+            datapiv.x0, datapiv.y0,&
+            datapiv.pixel_step,datapiv.fs
+    else
+       write(06,*)"piv_io_write : impossible to define the type of grid"
+       STOP
+    end if
 
     write(110)datapiv.u
 
     close(110)
-    ! else
-    !    write(06,*) trim(filename)," already exist...Skipped"
-    ! end if
 
   end subroutine piv_io_write
 
