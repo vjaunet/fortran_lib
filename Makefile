@@ -1,6 +1,4 @@
-#construction des modules
-# MODULES=$(shell grep -l 'module' SOURCE/*.f90)
-# MOD=$(MODULES:.o=.mod)
+############################################################
 
 #source : rech de .f90
 SRC=$(wildcard SOURCE/*.f90)
@@ -9,30 +7,43 @@ SRC=$(wildcard SOURCE/*.f90)
 OBJ=$(SRC:.f90=.o)
 
 #-----------------------------------------------------------
-#compilation :
-CC=ifort
-LIBS= -lfftw3 -llapack
 
 #option de vectorisation et parallelisation:
 OPT_para= -vec-report0 -parallel -par-report0
 OPT_OMP= #-openmp
+
 #option de debugage :
 OPT_Debug= #-traceback -CB -warn alignment -ftrapuv -mp1
+
+IPATH=-I/home/vjaunet/VJT/FORTRAN-LIB/SOURCE
+LPATH=-L/home/vjaunet/VJT/FORTRAN-LIB/LIB
+LIBS= -lfftw3 -llapack -lstat -lpod $(LPATH)
+
+CC = ifort -O2 $(IPATH)
+CC += $(OPT_para)
+CC += $(OPT_Debug)
 
 ALL:$(OBJ)
 
 %.o: %.f90
-	$(CC) -O3 $(OPT_OMP) $(OPT_para) $(OPT_Debug) -c $^  $(LIBS)
+	@cd SOURCE/; \
+	$(CC) -c lib_spectral.f90  $(LIBS); \
+	$(CC) -c lib_pod.f90  $(LIBS); \
+	$(CC) -c lib_stat.f90  $(LIBS); \
+	$(CC) -c interpol.f90  $(LIBS); \
+	$(CC) -c tecplot_io.f90  $(LIBS); \
+	$(CC) $(IPATH) -c lib_piv_data.f90  $(LIBS);
 
 clean:
-	rm -rf *.o *~ *.mod
-	rm -rf SOURCE/*.o SOURCE/*~ SOURCE/*.mod
+	rm -rf SOURCE/*.o SOURCE/*~
 
 install:
-	ar rc libtecplot.a tecplot_io.o
-	ar rc libinterpol.a interpol.o
-	ar rc libstat.a lib_stat.o
-	ar rc libspectral.a lib_spectral.o
-	mv *.mod MOD/.
-	mv *.a LIB/.
-	rm -rf *.o *~ *.mod
+	ar rc SOURCE/libtecplot.a SOURCE/tecplot_io.o
+	ar rc SOURCE/libinterpol.a SOURCE/interpol.o
+	ar rc SOURCE/libstat.a SOURCE/lib_stat.o
+	ar rc SOURCE/libpod.a SOURCE/lib_pod.o
+	ar rc SOURCE/libpivdata.a \
+	SOURCE/lib_piv_data.o SOURCE/lib_pod.o SOURCE/lib_stat.o
+	ar rc SOURCE/libspectral.a SOURCE/lib_spectral.o
+	mv SOURCE/*.mod MOD/.
+	mv SOURCE/*.a LIB/.
