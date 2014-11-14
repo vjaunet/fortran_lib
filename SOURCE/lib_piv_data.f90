@@ -133,16 +133,24 @@ contains
 
   subroutine piv_stats(datapiv)
     class(PIVdata)                     ::datapiv
+    integer                            ::n1,n2
     !-----------------------------------------------
-    allocate(datapiv.ustat(datapiv.nx,datapiv.ny,2*datapiv.ncomponent))
+    if(datapiv.typeofgrid == 'C') then
+       n1 = datapiv.nx
+       n2 = datapiv.ny
+    else
+       n1 = datapiv.nr
+       n2 = datapiv.ntheta
+    end if
 
+    allocate(datapiv.ustat(n1,n2,2*datapiv.ncomponent))
     if (.not. allocated(datapiv.w)) then
-       allocate(datapiv.w(datapiv.nx,datapiv.ny,datapiv.nsamples))
+       allocate(datapiv.w(n1,n2,datapiv.nsamples))
        datapiv.w = 1.0
     end if
 
-    do j=1,datapiv.ny
-       do i=1,datapiv.nx
+    do j=1,n2
+       do i=1,n1
           do ic=1,datapiv.ncomponent
              call average(datapiv.u(i,j,ic,:),&
                   datapiv.ustat(i,j,ic),&

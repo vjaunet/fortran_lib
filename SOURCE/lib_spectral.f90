@@ -34,7 +34,7 @@ module lib_spectral
   !* xcor(s1(:),s2(:),xsp(:),tau(:),psd_param) ,for 1d cross-correlation
   !*
   !* xpsd(t1(:),s1(:),t2(:),s2(:),f(:),xsp(:),psd_param)   ,for 1d X-PSD slotting
-  !* xcor(t1(:),s1(:),té(:),s2(:),tau(:),xcor(:),psd_param) ,for 1d X-cor slotting
+  !* xcor(t1(:),s1(:),t2(:),s2(:),tau(:),xcor(:),psd_param) ,for 1d X-cor slotting
   !*
   !*==============================================================================
 
@@ -1086,7 +1086,7 @@ contains
     nn = size(xcor)
 
     if (size(tau) /= size(xcor)) then
-       STOP 'size(tau) /= size(cor) in d_cor_1d'
+       STOP 'size(tau) /= size(cor) in d_xcor_1d'
     end if
 
     if (present(param)) then
