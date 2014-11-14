@@ -18,10 +18,10 @@ module lib_piv_data
   type PIVdata
      character ::typeofgrid="C"
      integer   ::nx,ny,nsamples,ncomponent,pixel_step
-     real      ::dx,x0,dy,y0,du,u0 !for scaling
+     real      ::dx,x0,dy,y0 !for scaling
      integer   ::ntheta,nr
      real      ::dr,dtheta
-     real      ::z_pos,fs
+     real      ::z_pos=0,fs=1
      real, dimension(:,:,:,:), allocatable ::u
      real, dimension(:,:,:),   allocatable ::x
 
@@ -111,14 +111,15 @@ contains
        end do
 
     else if (datapiv.typeofgrid == "P") then
+
        !fill in x for polar coodinate systeme
        allocate(datapiv.x(datapiv.nr,&
             datapiv.ntheta,&
             datapiv.ncomponent))
-       do i=1,datapiv.nx
-          do j=1,datapiv.ny
-             datapiv.x(i,j,1) = i * datapiv.dr * cos((j-1)*datapiv.dtheta)
-             datapiv.x(i,j,2) = i * datapiv.dr * sin((j-1)*datapiv.dtheta)
+       do i=1,datapiv.nr
+          do j=1,datapiv.ntheta
+             datapiv.x(i,j,1) = (i-1) * datapiv.dr * cos((j-1)*datapiv.dtheta)
+             datapiv.x(i,j,2) = (i-1) * datapiv.dr * sin((j-1)*datapiv.dtheta)
              datapiv.x(i,j,3) = datapiv.z_pos
           end do
        end do
@@ -134,6 +135,12 @@ contains
     class(PIVdata)                     ::datapiv
     !-----------------------------------------------
     allocate(datapiv.ustat(datapiv.nx,datapiv.ny,2*datapiv.ncomponent))
+
+    if (.not. allocated(datapiv.w)) then
+       allocate(datapiv.w(datapiv.nx,datapiv.ny,datapiv.nsamples))
+       datapiv.w = 1.0
+    end if
+
     do j=1,datapiv.ny
        do i=1,datapiv.nx
           do ic=1,datapiv.ncomponent
@@ -163,37 +170,35 @@ contains
        open(unit=110,file=trim(filename),form='unformatted',&
             action='read', access='stream', status='old')
 
-       !read datapiv info header
        if (datapiv.typeofgrid == "P") then
           read(110)datapiv.nr, datapiv.ntheta,&
                datapiv.ncomponent,datapiv.nsamples,&
                datapiv.dr, datapiv.dtheta,&
                datapiv.fs
 
-       else if (datapiv.typeofgrid == "C") then
+          allocate(datapiv.u(datapiv.nr,&
+               datapiv.ntheta,&
+               datapiv.ncomponent,datapiv.nsamples))
+          read(110)datapiv.u
 
+       else if (datapiv.typeofgrid == "C") then
+          !read datapiv info header
           read(110)datapiv.nx, datapiv.ny,&
                datapiv.ncomponent,datapiv.nsamples,&
                datapiv.dx, datapiv.dy,&
                datapiv.x0, datapiv.y0,&
                datapiv.pixel_step,datapiv.fs
+
+          !read velocity samples
+          allocate(datapiv.u(datapiv.nx,&
+               datapiv.ny,&
+               datapiv.ncomponent,datapiv.nsamples))
+          read(110)datapiv.u
+
        else
           write(06,*)"piv_io_read : impossible to define the type of grid"
           STOP
        end if
-
-       read(110)datapiv.nx, datapiv.ny,&
-            datapiv.ncomponent,datapiv.nsamples,&
-            datapiv.dx, datapiv.dy,&
-            datapiv.x0, datapiv.y0,&
-            datapiv.pixel_step,datapiv.fs
-
-
-       !read velocity samples
-       allocate(datapiv.u(datapiv.nx,&
-            datapiv.ny,&
-            datapiv.ncomponent,datapiv.nsamples))
-       read(110)datapiv.u
 
        close(110)
     else
@@ -220,7 +225,6 @@ contains
             datapiv.fs
 
     else if (datapiv.typeofgrid == "C") then
-
        write(110)datapiv.nx, datapiv.ny,&
             datapiv.ncomponent,datapiv.nsamples,&
             datapiv.dx, datapiv.dy,&

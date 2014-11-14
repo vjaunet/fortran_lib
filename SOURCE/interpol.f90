@@ -194,8 +194,11 @@ contains
 
   subroutine f_bicubic_interp_2d(x,y,xint,yint)
     implicit none
-    real(kind=4)    ,dimension(:,:,:)               ::x
-    real(kind=4)    ,dimension(:,:)                 ::y
+    real(kind=4)    ,dimension(:,:,:) ,intent(in)   ::x
+    real(kind=4)    ,dimension(:,:)   ,intent(in)   ::y
+
+    real(kind=4)    ,dimension(:,:,:) ,intent(in)   ::xint
+    real(kind=4)    ,dimension(:,:)   ,intent(out)  ::yint
 
     real(kind=8)    ,dimension(:,:,:) ,allocatable  ::dy
     real(kind=8)    ,dimension(:,:)   ,allocatable  ::A
@@ -208,9 +211,6 @@ contains
     real(kind=8)    ,dimension(2,2)                 ::ytmp
     integer(kind=8) ,dimension(2)                   ::itmp
     real(kind=8)                                    ::gdx,gdy
-
-    real(kind=4)    ,dimension(:,:,:)               ::xint
-    real(kind=4)    ,dimension(:,:)                 ::yint
 
     real(kind=8)                                    ::trash
     integer(kind=8)                                 ::nx,ny
@@ -296,7 +296,7 @@ contains
              !for debugging
              ! if (isnan(yint(iint,jint))) then
              !    print*,itmp(1),itmp(2)
-             !    print*,xint(iint,jint,1),xint(iint,jint,1)
+             !    print*,xint(iint,jint,1),xint(iint,jint,2)
              !    ! pause
              !    yint(iint,jint) = -10.d0
              ! end if
@@ -305,7 +305,6 @@ contains
 
        end do !end loop on interpolated data
     end do !end loop on interpolated data
-
 
     deallocate(dy)
     deallocate(A)

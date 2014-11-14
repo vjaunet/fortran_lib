@@ -10,7 +10,7 @@ OBJ=$(SRC:.f90=.o)
 
 #option de vectorisation et parallelisation:
 OPT_para= -vec-report0 -parallel -par-report0
-OPT_OMP= #-openmp
+OPT_OMP= -openmp
 
 #option de debugage :
 OPT_Debug= #-traceback -CB -warn alignment -ftrapuv -mp1
@@ -21,6 +21,7 @@ LIBS= -lfftw3 -llapack -lstat -lpod $(LPATH)
 
 CC = ifort -O2 $(IPATH)
 CC += $(OPT_para)
+CC += $(OPT_OMP)
 CC += $(OPT_Debug)
 
 ALL:$(OBJ)
