@@ -4,7 +4,7 @@ module lib_spectral
   !*==================================================================
   !*
   !*
-  !*         Spectral librairy for Signal processing
+  !*         Spectral library for Signal processing
   !*
   !*
   !*       author : Vincent Jaunet
@@ -49,7 +49,8 @@ module lib_spectral
      real(kind=8)                   ::fmin=0.5d0   !min frequency to be computed (slotting)
      logical                        ::allocated_fft =.false.
      logical                        ::allocated_ifft=.false.
-     logical                        ::normalize=.false.
+     logical                        ::norm_fft=.false.
+     logical                        ::rms_norm=.false.
      logical                        ::check_pval=.false.
      integer(kind=8)                ::plan=0
      integer(kind=8)                ::plan_ifft=0
@@ -156,7 +157,7 @@ contains
     call dfftw_execute(def_param.plan,s,sp)
 
     !normalization
-    if (def_param.normalize) then
+    if (def_param.norm_fft) then
        sp = sp/def_param.nfft
     end if
 
@@ -347,7 +348,12 @@ contains
        end do
        rms = rms + 0.5d0*abs(sp(def_param.nfft/2+1))*&
             def_param.fe/dble(def_param.nfft)
-       write(06,'(a,f6.3,2x,f6.3)')'Parseval rms**2/sum(psd*df) : ',sigrms**2,rms
+       write(06,'(a,e15.3,2x,e15.3)')'Parseval rms**2, sum(psd*df) : ',sigrms**2,rms
+    end if
+
+    !normalize output power
+    if (def_param.rms_norm) then
+       sp = sp/(sigrms**2)
     end if
 
     !Recovering original signal
@@ -417,7 +423,7 @@ contains
     end if
 
     if (size(sp) .ne. def_param.nfft/2+1) then
-       write(06,*) 'sp size invalid : sp(1:nfft/2+1)'
+       write(06,*) 'sp size invalid : sp(1:nfft/2+1) in d_xpsd_1d'
        stop
     end if
 
@@ -514,7 +520,12 @@ contains
        end do
        rms = rms + 0.5d0*abs(sp(def_param.nfft/2+1))*&
             def_param.fe/dble(def_param.nfft)
-       write(06,'(a,f6.3,2x,f6.3)')'Parseval rms**2/sum(psd*df) : ', sigrms1*sigrms2,rms
+       write(06,'(a,e15.3,2x,e15.3)')'Parseval rms**2, sum(xpsd*df) : ', sigrms1*sigrms2,rms
+    end if
+
+    !normalize output power
+    if (def_param.rms_norm) then
+       sp = sp/(sigrms1*sigrms2)
     end if
 
     return
@@ -777,12 +788,12 @@ contains
        tau(k) = tau_min + DTslot*real(k-1)
     enddo
 
-    !Remove mean parts and normalize
+    !Remove mean parts and norm_fft
     Sm   = sum(s(:))/real(nn)
     Srms = sqrt(sum((s(:)-Sm)**2)/real(nn))
     s(:) = (s(:) - Sm)/Srms
 
-    !Normalized Correlation calculation
+    !Norm_fftd Correlation calculation
     call slottingFuzzy(nn,at,s,&
          nn,at,s,&
          tau,DTslot,xcor,&
@@ -844,7 +855,7 @@ contains
        tau(k) = tau_min + DTslot*real(k-1)
     enddo
 
-    !Remove mean parts and normalize
+    !Remove mean parts and norm_fft
     S1m   = sum(s1(:))/real(nn1)
     S1rms = sqrt(sum((s1(:)-S1m)**2)/real(nn1))
     s1(:) = (s1(:) - S1m)/S1rms
@@ -853,7 +864,7 @@ contains
     S2rms = sqrt(sum((s2(:)-S2m)**2)/real(nn2))
     s2(:) = (s2(:) - S2m)/S2rms
 
-    !Normalized Correlation calculation
+    !Norm_fftd Correlation calculation
     call slottingFuzzy(nn1,at1,s1,&
          nn2,at2,s2,&
          tau,DTslot,xcor,&
@@ -1014,11 +1025,11 @@ contains
 
   subroutine d_cor_1d(s,tau,cor,param)
     real(kind=8)     ,dimension(:)              ::s
-    real(kind=8)  ,dimension(:)                 ::cor
-    type(psd_param) ,optional                   ::param
+    real(kind=8)     ,dimension(:)              ::cor
     real(kind=8)     ,dimension(:)              ::tau
+    type(psd_param)  ,optional                  ::param
 
-    complex(kind=8) ,dimension(:) , allocatable ::sp
+    complex(kind=8) ,dimension(:) , allocatable ::sp,sp_full
     real(kind=8)    ,dimension(:) , allocatable ::cor_tmp
     type(psd_param)                             ::def_param
 
@@ -1046,7 +1057,10 @@ contains
     call d_psd_1d(s,sp,def_param)
 
     !compute inverse FFT of PSD/2.d0 (Wiener-Kintchine)
-    call d_ifft_1d(sp/2.d0,cor,def_param)
+    allocate(sp_full(nn))
+    sp_full(1:nn/2+1) = sp/2.
+    sp_full(nn/2+2:nn) = sp(nn/2+2:2:-1)/2.
+    call d_ifft_1d(sp_full,cor,def_param)
 
     !free ifft
     call free_ifft(def_param)
@@ -1056,7 +1070,7 @@ contains
     cor_tmp(nn/2+1:nn) = cor(1:nn/2)
     cor_tmp(1:nn/2)    = cor(nn/2+1:nn)
 
-    !normalize correlation
+    !norm_fft correlation
     cor = cor_tmp*def_param.fe/real(def_param.nfft)
 
     deallocate(cor_tmp)
@@ -1065,9 +1079,7 @@ contains
 
   end subroutine d_cor_1d
 
-  !TO-DO-----------------------
-  !TO-DO
-  !TO-DO-----------------------
+  !-----------------------
 
   subroutine d_xcor_1d(s1,s2,tau,xcor,param)
     real(kind=8)     ,dimension(:)              ::s1,s2
@@ -1075,52 +1087,57 @@ contains
     type(psd_param)  ,optional                  ::param
     real(kind=8)     ,dimension(:)              ::tau
 
-    complex(kind=8) ,dimension(:) , allocatable ::xsp
+    complex(kind=8) ,dimension(:) , allocatable ::xsp,xsp_full
     real(kind=8)    ,dimension(:) , allocatable ::xcor_tmp
     type(psd_param)                             ::def_param
 
     real(kind=8)                                ::rms
-    integer(kind=8)                             ::nn
+    integer(kind=8)                             ::nf
     !---------------------------------------------------
-
-    nn = size(xcor)
 
     if (size(tau) /= size(xcor)) then
        STOP 'size(tau) /= size(cor) in d_xcor_1d'
+    else if (size(s1) .lt. size(tau)) then
+       STOP 'size(s1) < size(tau) in d_cor_1d'
     end if
 
     if (present(param)) then
        def_param = param
     end if
 
+    nf = def_param.nfft
+
     !fill in tau
-    do i=1,nn
-       tau(i) = (dble(i)-nn/2-1)/def_param.fe
+    do i=1,nf
+       tau(i) = (dble(i)-nf/2-1)/def_param.fe
     end do
 
     !compute XPSD using Welch's method
-    allocate(xsp(nn/2+1))
+    allocate(xsp(nf/2+1))
     call d_xpsd_1d(s1,s2,xsp,def_param)
 
     !compute inverse FFT of PSD/2.0 (Wiener-Kintchine)
-    call d_ifft_1d(xsp/2.,xcor,def_param)
+    allocate(xsp_full(nf))
+    xsp_full(1:nf/2+1)  = xsp/2.
+    xsp_full(nf/2+2:nf) = xsp(nf/2+2:2:-1)/2.
+    call d_ifft_1d(xsp_full,xcor,def_param)
 
     !free ifft
     call free_ifft(def_param)
 
     !swap left an rigth
-    allocate(xcor_tmp(nn))
-    xcor_tmp(nn/2+1:nn) = xcor(1:nn/2)
-    xcor_tmp(1:nn/2)    = xcor(nn/2+1:nn)
+    allocate(xcor_tmp(nf))
+    xcor_tmp(nf/2+1:nf) = xcor(1:nf/2)
+    xcor_tmp(1:nf/2)    = xcor(nf/2+1:nf)
     xcor = xcor_tmp
 
-    !normalize the correaltion
+    !norm_fft the correlation
     xcor =xcor*def_param.fe/real(def_param.nfft)
 
     deallocate(xcor_tmp)
+    deallocate(xsp)
 
     return
-
 
   end subroutine d_xcor_1d
 

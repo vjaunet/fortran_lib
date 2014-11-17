@@ -13,7 +13,7 @@ OPT_para= -vec-report0 -parallel -par-report0
 OPT_OMP= -openmp
 
 #option de debugage :
-OPT_Debug= #-traceback -CB -warn alignment -ftrapuv -mp1
+Debug= -traceback -CB -warn alignment -ftrapuv -mp1
 
 IPATH=-I/home/vjaunet/VJT/FORTRAN-LIB/SOURCE
 LPATH=-L/home/vjaunet/VJT/FORTRAN-LIB/LIB
@@ -22,7 +22,7 @@ LIBS= -lfftw3 -llapack -lstat -lpod $(LPATH)
 CC = ifort -O2 $(IPATH)
 CC += $(OPT_para)
 CC += $(OPT_OMP)
-CC += $(OPT_Debug)
+#CC += $(Debug)
 
 ALL:$(OBJ)
 
@@ -37,6 +37,32 @@ ALL:$(OBJ)
 
 clean:
 	rm -rf SOURCE/*.o SOURCE/*~
+
+spectral:
+	@cd SOURCE/; \
+	$(CC) -c lib_spectral.f90  $(LIBS);
+
+stat:
+	@cd SOURCE/; \
+	$(CC) -c lib_stat.f90  $(LIBS);
+
+interpol:
+	@cd SOURCE/; \
+	$(CC) -c interpol.f90  $(LIBS);
+
+tecplot:
+	@cd SOURCE/; \
+	$(CC) -c tecplot_io.f90  $(LIBS);
+
+pod:
+	@cd SOURCE/; \
+	$(CC) -c lib_pod.f90  $(LIBS);
+
+
+piv_data: stat pod
+	@cd SOURCE/; \
+	$(CC) -c lib_piv_data.f90  $(LIBS);
+
 
 install:
 	ar rc SOURCE/libtecplot.a SOURCE/tecplot_io.o

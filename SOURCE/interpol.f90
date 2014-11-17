@@ -1,4 +1,6 @@
 module interpol
+  use omp_lib
+  implicit none
 
   !=================Specification=============================
   !*
@@ -39,7 +41,31 @@ module interpol
   !*
   !=================    TO DO    =============================
 
+  type bicubic
+     real(kind=8)    ,dimension(:,:,:) ,allocatable  ::dy
+     real(kind=8)    ,dimension(:,:)   ,allocatable  ::A
+     real(kind=8)    ,dimension(:)     ,allocatable  ::B
+     real(kind=8)    ,dimension(:)     ,allocatable  ::alpha
+
+     real(kind=8)    ,dimension(:,:)   ,allocatable  ::dist
+     real(kind=8)    ,dimension(2,2,2)               ::xtmp
+     real(kind=8)    ,dimension(2,2,3)               ::dytmp
+     real(kind=8)    ,dimension(2,2)                 ::ytmp
+     integer(kind=8) ,dimension(2)                   ::itmp
+     real(kind=8)                                    ::gdx,gdy
+
+     real(kind=8)                                    ::trash
+     integer(kind=8)                                 ::nx,ny
+     integer(kind=8)                                 ::nxint,nyint
+     integer(kind=8)                                 ::ii
+  end type bicubic
+
   integer(kind=8), private ::i,j,k,ic,in,iint,jint
+  integer(kind=8), private ::im,jm,km,icm,inm,iintm,jintm
+  type(bicubic)  , private ::b
+
+  !$OMP THREADPRIVATE(b,im,jm,km,icm,inm,iintm,jintm)
+
 
   public :: bicubic_inter, &
        inv_dist_inter,&
@@ -70,226 +96,87 @@ contains
   !================================================================
   subroutine d_bicubic_interp_2d(x,y,xint,yint)
     implicit none
-    real(kind=8)    ,dimension(:,:,:)               ::x
-    real(kind=8)    ,dimension(:,:)                 ::y
+    real(kind=8)    ,dimension(:,:,:) ,intent(in)   ::x
+    real(kind=8)    ,dimension(:,:)   ,intent(in)   ::y
 
-    real(kind=8)    ,dimension(:,:,:) ,allocatable  ::dy
-    real(kind=8)    ,dimension(:,:)   ,allocatable  ::A
-    real(kind=8)    ,dimension(:)     ,allocatable  ::B
-    real(kind=8)    ,dimension(:)     ,allocatable  ::alpha
-
-    real(kind=8)    ,dimension(:,:)   ,allocatable  ::dist
-    real(kind=8)    ,dimension(2,2,2)               ::xtmp
-    real(kind=8)    ,dimension(2,2,3)               ::dytmp
-    real(kind=8)    ,dimension(2,2)                 ::ytmp
-    integer(kind=8) ,dimension(2)                   ::itmp
-    real(kind=8)                                    ::gdx,gdy
-
-    real(kind=8)    ,dimension(:,:,:)               ::xint
-    real(kind=8)    ,dimension(:,:)                 ::yint
-
-    real(kind=8)                                    ::trash
-    integer(kind=8)                                 ::nx,ny
-    integer(kind=8)                                 ::nxint,nyint
-    integer(kind=8)                                 ::ii
+    real(kind=8)    ,dimension(:,:,:) ,intent(in)   ::xint
+    real(kind=8)    ,dimension(:,:)   ,intent(out)  ::yint
     !-------------------------------------------------------------
 
-    nx = size(x,1)
-    ny = size(x,2)
-    nxint = size(xint,1)
-    nyint = size(xint,2)
+    b.nx = size(x,1)
+    b.ny = size(x,2)
+    b.nxint = size(xint,1)
+    b.nyint = size(xint,2)
 
-    allocate(dy(nx,ny,3))
+
+    if (.not.allocated(b.a))    allocate(b.A(16,16));
+    if (.not.allocated(b.B))    allocate(b.B(16))
+    if (.not.allocated(b.alpha))allocate(b.alpha(16))
+    if (.not.allocated(b.dist)) allocate(b.dist(b.nx,b.ny))
+    if (.not.allocated(b.dy))   allocate(b.dy(b.nx,b.ny,3))
+
+    call fillA(b.A)
 
     !compute gradients along x1 : dy/dx1
-    call diff(y,nx,ny,dy(:,:,1),'X')
+    call diff(dble(y),b.nx,b.ny,b.dy(:,:,1),'X')
     !compute gradients along x2 ; dy/dx2
-    call diff(y,nx,ny,dy(:,:,2),'Y')
+    call diff(dble(y),b.nx,b.ny,b.dy(:,:,2),'Y')
     !computes cros gradients : d(dy/dx)/dy = dy/dx1dx2
-    call diff(dy(:,:,1),nx,ny,dy(:,:,3),'Y')
+    call diff(b.dy(:,:,1),b.nx,b.ny,b.dy(:,:,3),'Y')
 
-    allocate(A(16,16))
-    call fillA(A)
-    allocate(B(16),alpha(16))
-
-    allocate(dist(nx,ny))
-    do iint=1,nxint
-       do jint=1,nyint
+    do iintm=1,b.nxint
+       do jintm=1,b.nyint
 
           !computes distance between POI and all data
-          dist = 0.d0
-          do i=1,nx
-             do j=1,ny
+          b.dist = 0.d0
+          do im=1,b.nx
+             do jm=1,b.ny
 
-                do ic=1,2
-                   dist(i,j) = dist(i,j) + &
+                do icm=1,2
+                   b.dist(i,j) = b.dist(i,j) + &
                         (x(i,j,ic)-xint(iint,jint,ic))**2
                 end do
-                dist(i,j) = dsqrt(dist(i,j))
+                b.dist(im,jm) = dsqrt(b.dist(im,jm))
 
              end do
           end do
 
           !localization of the surrounding 4 interpolant points
-          itmp = minloc(dist)
-          if (minval(dist) ==0.d0) then
+          b.itmp = minloc(b.dist)
+          if (minval(b.dist) ==0.d0) then
              !the interpolated point is loacated on an interpolant
              !get the exact value
-             yint(iint,jint) = y(itmp(1),itmp(2))
+             yint(iintm,jintm) = y(b.itmp(1),b.itmp(2))
 
           else
 
              !get the values of the surrounding interpolants
-             call get_4neighbors(itmp,xint(iint,jint,:),&
-                  x,y,dy,xtmp,ytmp,dytmp)
+             call get_4neighbors(b.itmp,dble(xint(iint,jint,:)),&
+                  dble(x),dble(y),b.dy,b.xtmp,b.ytmp,b.dytmp)
 
              !get the bicubic interpolation coefficient alpha
-             call fillB(B,ytmp,dytmp(:,:,1),dytmp(:,:,2),dytmp(:,:,3))
-             alpha = 0.d0
-             do i=1,16
-                do j=1,16
-                   alpha(i) = alpha(i) + A(i,j)*B(j)
+             call fillB(b.B,b.ytmp,b.dytmp(:,:,1),b.dytmp(:,:,2),b.dytmp(:,:,3))
+             b.alpha = 0.d0
+             do im=1,16
+                do jm=1,16
+                   b.alpha(i) = b.alpha(i) + b.A(i,j)*b.B(j)
                 end do
              end do
 
              !get distance to compute the interpolation
-             gdx = xint(iint,jint,1)- xtmp(1,1,1)
-             gdx = gdx/(xtmp(2,2,1) - xtmp(1,1,1))
-             gdy = xint(iint,jint,2) - xtmp(1,1,2)
-             gdy = gdy/(xtmp(2,2,2) - xtmp(1,1,2))
+             b.gdx = xint(iintm,jintm,1) - b.xtmp(1,1,1)
+             b.gdx = b.gdx/(b.xtmp(2,2,1)    - b.xtmp(1,1,1))
+             b.gdy = xint(iintm,jintm,2) - b.xtmp(1,1,2)
+             b.gdy = b.gdy/(b.xtmp(2,2,2)    - b.xtmp(1,1,2))
 
              !Interpolate
-             yint(iint,jint) = 0.d0
-             ii = 1
-             do j=0,3
-                do i=0,3
-                   yint(iint,jint) = yint(iint,jint) + &
-                        alpha(ii) * gdx**i * gdy**j
-                   ii=ii+1
-                end do
-             end do
-
-             !for debugging
-             ! if (isnan(yint(iint,jint))) then
-             !    print*,itmp(1),itmp(2)
-             !    print*,xint(iint,jint,1),xint(iint,jint,1)
-             !    ! pause
-             !    yint(iint,jint) = -10.d0
-             ! end if
-
-          end if
-
-       end do !end loop on interpolated data
-    end do !end loop on interpolated data
-
-
-    deallocate(dy)
-    deallocate(A)
-    deallocate(B)
-    deallocate(alpha)
-    deallocate(dist)
-
-  end subroutine d_bicubic_interp_2d
-
-
-  subroutine f_bicubic_interp_2d(x,y,xint,yint)
-    implicit none
-    real(kind=4)    ,dimension(:,:,:) ,intent(in)   ::x
-    real(kind=4)    ,dimension(:,:)   ,intent(in)   ::y
-
-    real(kind=4)    ,dimension(:,:,:) ,intent(in)   ::xint
-    real(kind=4)    ,dimension(:,:)   ,intent(out)  ::yint
-
-    real(kind=8)    ,dimension(:,:,:) ,allocatable  ::dy
-    real(kind=8)    ,dimension(:,:)   ,allocatable  ::A
-    real(kind=8)    ,dimension(:)     ,allocatable  ::B
-    real(kind=8)    ,dimension(:)     ,allocatable  ::alpha
-
-    real(kind=8)    ,dimension(:,:)   ,allocatable  ::dist
-    real(kind=8)    ,dimension(2,2,2)               ::xtmp
-    real(kind=8)    ,dimension(2,2,3)               ::dytmp
-    real(kind=8)    ,dimension(2,2)                 ::ytmp
-    integer(kind=8) ,dimension(2)                   ::itmp
-    real(kind=8)                                    ::gdx,gdy
-
-    real(kind=8)                                    ::trash
-    integer(kind=8)                                 ::nx,ny
-    integer(kind=8)                                 ::nxint,nyint
-    integer(kind=8)                                 ::ii
-    !-------------------------------------------------------------
-
-    nx = size(x,1)
-    ny = size(x,2)
-    nxint = size(xint,1)
-    nyint = size(xint,2)
-
-    allocate(dy(nx,ny,3))
-
-    !compute gradients along x1 : dy/dx1
-    call diff(dble(y),nx,ny,dy(:,:,1),'X')
-    !compute gradients along x2 ; dy/dx2
-    call diff(dble(y),nx,ny,dy(:,:,2),'Y')
-    !computes cros gradients : d(dy/dx)/dy = dy/dx1dx2
-    call diff(dy(:,:,1),nx,ny,dy(:,:,3),'Y')
-
-    allocate(A(16,16))
-    call fillA(A)
-    allocate(B(16),alpha(16))
-
-    allocate(dist(nx,ny))
-    do iint=1,nxint
-       do jint=1,nyint
-
-          !computes distance between POI and all data
-          dist = 0.d0
-          do i=1,nx
-             do j=1,ny
-
-                do ic=1,2
-                   dist(i,j) = dist(i,j) + &
-                        (x(i,j,ic)-xint(iint,jint,ic))**2
-                end do
-                dist(i,j) = dsqrt(dist(i,j))
-
-             end do
-          end do
-
-          !localization of the surrounding 4 interpolant points
-          itmp = minloc(dist)
-          if (minval(dist) ==0.d0) then
-             !the interpolated point is loacated on an interpolant
-             !get the exact value
-             yint(iint,jint) = y(itmp(1),itmp(2))
-
-          else
-
-             !get the values of the surrounding interpolants
-             call get_4neighbors(itmp,dble(xint(iint,jint,:)),&
-                  dble(x),dble(y),dy,xtmp,ytmp,dytmp)
-
-             !get the bicubic interpolation coefficient alpha
-             call fillB(B,ytmp,dytmp(:,:,1),dytmp(:,:,2),dytmp(:,:,3))
-             alpha = 0.d0
-             do i=1,16
-                do j=1,16
-                   alpha(i) = alpha(i) + A(i,j)*B(j)
-                end do
-             end do
-
-             !get distance to compute the interpolation
-             gdx = xint(iint,jint,1)- xtmp(1,1,1)
-             gdx = gdx/(xtmp(2,2,1) - xtmp(1,1,1))
-             gdy = xint(iint,jint,2) - xtmp(1,1,2)
-             gdy = gdy/(xtmp(2,2,2) - xtmp(1,1,2))
-
-             !Interpolate
-             yint(iint,jint) = 0.d0
-             ii = 1
-             do j=0,3
-                do i=0,3
-                   yint(iint,jint) = yint(iint,jint) + &
-                        alpha(ii) * gdx**i * gdy**j
-                   ii=ii+1
+             yint(iintm,jintm) = 0.d0
+             b.ii = 1
+             do jm=0,3
+                do im=0,3
+                   yint(iintm,jintm) = yint(iintm,jintm) + &
+                        b.alpha(b.ii) * b.gdx**im * b.gdy**jm
+                   b.ii=b.ii+1
                 end do
              end do
 
@@ -306,11 +193,117 @@ contains
        end do !end loop on interpolated data
     end do !end loop on interpolated data
 
-    deallocate(dy)
-    deallocate(A)
-    deallocate(B)
-    deallocate(alpha)
-    deallocate(dist)
+    deallocate(b.dy)
+    deallocate(b.A)
+    deallocate(b.B)
+    deallocate(b.alpha)
+    deallocate(b.dist)
+
+  end subroutine d_bicubic_interp_2d
+
+
+  subroutine f_bicubic_interp_2d(x,y,xint,yint)
+    implicit none
+    real(kind=4)    ,dimension(:,:,:) ,intent(in)   ::x
+    real(kind=4)    ,dimension(:,:)   ,intent(in)   ::y
+
+    real(kind=4)    ,dimension(:,:,:) ,intent(in)   ::xint
+    real(kind=4)    ,dimension(:,:)   ,intent(out)  ::yint
+    !-----------------------------------------------------------
+    b.nx = size(x,1)
+    b.ny = size(x,2)
+    b.nxint = size(xint,1)
+    b.nyint = size(xint,2)
+
+    if (.not.allocated(b.a))    allocate(b.A(16,16));
+    if (.not.allocated(b.B))    allocate(b.B(16))
+    if (.not.allocated(b.alpha))allocate(b.alpha(16))
+    if (.not.allocated(b.dist)) allocate(b.dist(b.nx,b.ny))
+    if (.not.allocated(b.dy))   allocate(b.dy(b.nx,b.ny,3))
+
+    call fillA(b.A)
+
+    !compute gradients along x1 : dy/dx1
+    call diff(dble(y),b.nx,b.ny,b.dy(:,:,1),'X')
+    !compute gradients along x2 ; dy/dx2
+    call diff(dble(y),b.nx,b.ny,b.dy(:,:,2),'Y')
+    !computes cros gradients : d(dy/dx)/dy = dy/dx1dx2
+    call diff(b.dy(:,:,1),b.nx,b.ny,b.dy(:,:,3),'Y')
+
+    do iintm=1,b.nxint
+       do jintm=1,b.nyint
+
+          !computes distance between POI and all data
+          b.dist = 0.d0
+          do im=1,b.nx
+             do jm=1,b.ny
+
+                do icm=1,2
+                   b.dist(im,jm) = b.dist(im,jm) + &
+                        (x(im,jm,icm)-xint(iintm,jintm,icm))**2
+                end do
+                b.dist(im,jm) = dsqrt(b.dist(im,jm))
+
+             end do
+          end do
+
+          !localization of the surrounding 4 interpolant points
+          b.itmp = minloc(b.dist)
+          if (minval(b.dist) == 0.d0) then
+             !the interpolated point is loacated on an interpolant
+             !get the exact value
+             yint(iintm,jintm) = y(b.itmp(1),b.itmp(2))
+
+          else
+
+             !get the values of the surrounding interpolants
+             call get_4neighbors(b.itmp,dble(xint(iintm,jintm,:)),&
+                  dble(x),dble(y),b.dy,b.xtmp,b.ytmp,b.dytmp)
+
+             !get the bicubic interpolation coefficient alpha
+             call fillB(b.B,b.ytmp,b.dytmp(:,:,1),b.dytmp(:,:,2),b.dytmp(:,:,3))
+             b.alpha = 0.d0
+             do im=1,16
+                do jm=1,16
+                   b.alpha(im) = b.alpha(im) + b.A(im,jm)*b.B(jm)
+                end do
+             end do
+
+             !get distance to compute the interpolation
+             b.gdx = xint(iintm,jintm,1) - b.xtmp(1,1,1)
+             b.gdx = b.gdx/(b.xtmp(2,2,1)    - b.xtmp(1,1,1))
+             b.gdy = xint(iintm,jintm,2) - b.xtmp(1,1,2)
+             b.gdy = b.gdy/(b.xtmp(2,2,2)    - b.xtmp(1,1,2))
+
+             !Interpolate
+             yint(iintm,jintm) = 0.d0
+             b.ii = 1
+             do jm=0,3
+                do im=0,3
+                   yint(iintm,jintm) = yint(iintm,jintm) + &
+                        b.alpha(b.ii) * b.gdx**im * b.gdy**jm
+                   b.ii=b.ii+1
+                end do
+             end do
+
+             !for debugging
+             ! if (isnan(yint(iint,jint))) then
+             !    print*,itmp(1),itmp(2)
+             !    print*,xint(iint,jint,1),xint(iint,jint,2)
+             !    ! pause
+             !    yint(iint,jint) = -10.d0
+             ! end if
+
+          end if
+
+       end do !end loop on interpolated data
+    end do !end loop on interpolated data
+
+    deallocate(b.dy)
+    deallocate(b.A)
+    deallocate(b.B)
+    deallocate(b.alpha)
+    deallocate(b.dist)
 
   end subroutine f_bicubic_interp_2d
 
@@ -523,6 +516,7 @@ contains
     integer(kind=8)                                    ::nx,ny
     real(kind=8)     ,dimension(nx,ny)                 ::tab,dtab
     character(len=1)                                   ::dir
+    integer(kind=8)                                    ::i,j
     !--------------------------------------------------------------------
 
     !computes the second order Finite difference over a 2D domain
