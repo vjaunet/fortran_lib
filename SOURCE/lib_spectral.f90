@@ -352,7 +352,7 @@ contains
     end if
 
     !normalize output power
-    if (def_param.rms_norm) then
+    if (def_param.rms_norm .and. sigrms /= 0.d0) then
        sp = sp/(sigrms**2)
     end if
 
@@ -524,7 +524,9 @@ contains
     end if
 
     !normalize output power
-    if (def_param.rms_norm) then
+    if (def_param.rms_norm &
+         .and. sigrms1 /= 0.d0 &
+         .and. sigrms2 /= 0.d0) then
        sp = sp/(sigrms1*sigrms2)
     end if
 
