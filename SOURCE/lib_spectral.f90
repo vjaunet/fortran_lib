@@ -70,11 +70,11 @@ module lib_spectral
        triangle, slottingFuzzy
 
   interface fft
-     module procedure d_fft_1d,d_fft_1d_f
+     module procedure d_fft_1d,d_fft_1d_f,d_fft_2d
   end interface fft
 
   interface ifft
-     module procedure d_ifft_1d
+     module procedure d_ifft_1d,d_ifft_2d
   end interface ifft
 
   interface psd
@@ -90,7 +90,7 @@ module lib_spectral
   end interface xpsd
 
   interface xcor
-     module procedure d_xcor_1d, d_xcor_lda
+     module procedure d_xcor_1d, d_xcor_lda, d_xcor_2d
   end interface xcor
 
 contains
@@ -202,6 +202,55 @@ contains
 
   end subroutine d_fft_1d_f
 
+
+  subroutine d_fft_2d(s, sp, param)
+    real(kind=8)    ,dimension(:,:)             ::s
+    complex(kind=8) ,dimension(:,:)             ::sp
+    type(psd_param) ,optional                   ::param
+
+    type(psd_param)                             ::def_param
+    integer(kind=8)                             ::nx,ny
+    !----------------------------------------------------
+
+    if (size(sp,1) /= size(s,1) .or. &
+         size(sp,2) /= size(s,2)) then
+       STOP 'size(sp) must be size(s) in d_dfft_2d'
+    end if
+
+    nx=size(s,1)
+    ny=size(s,2)
+
+    if (present(param)) then
+       def_param = param
+    end if
+
+    if (.not.def_param.allocated_fft) then
+       !allocate fftw
+       call dfftw_plan_dft_2d(def_param.plan,&
+            nx,ny,sp,sp,FFTW_FORWARD,FFTW_ESTIMATE)
+       !set allocated to true for next call
+       def_param.allocated_fft = .true.
+    end if
+
+    !compute fftw
+    !passing S into FFTW
+    sp = s
+    call dfftw_execute_dft(def_param.plan,sp,sp)
+
+    !normalization
+    if (def_param.norm_fft) then
+       sp = sp/dble(nx*ny)
+    end if
+
+    !return parameter values for next call
+    if (present(param)) then
+       param = def_param
+    end if
+
+    return
+
+  end subroutine d_fft_2d
+
   !----------------------------------------------------
   !*   END Fourier Transform
   !----------------------------------------------------
@@ -225,7 +274,7 @@ contains
 
     if (.not.def_param.allocated_ifft) then
        !allocate fftw
-       call dfftw_plan_dft_c2r_1d(def_param.plan_ifft,&
+       call dfftw_plan_dft_c2r_2d(def_param.plan_ifft,&
             size(sp,1),sp,s,FFTW_ESTIMATE)
        def_param.allocated_ifft = .true.
     end if
@@ -241,6 +290,44 @@ contains
     return
 
   end subroutine d_ifft_1d
+
+  subroutine d_ifft_2d(sp,s,param)
+    complex(kind=8)  ,dimension(:,:)            ::sp
+    real(kind=8)     ,dimension(:,:)            ::s
+    type(psd_param)  ,optional                  ::param
+
+    type(psd_param)                             ::def_param
+    integer(kind=8)                             ::nx,ny
+    !----------------------------------------------------
+
+    if (present(param)) then
+       def_param = param
+    end if
+
+    nx=size(sp,1)
+    ny=size(sp,2)
+
+    if (.not.def_param.allocated_ifft) then
+       !allocate fftw
+       call dfftw_plan_dft_2d(def_param.plan_ifft,&
+            nx,ny,sp,sp,FFTW_BACKWARD,FFTW_ESTIMATE)
+       def_param.allocated_ifft = .true.
+    end if
+
+    !compute fftw
+    call dfftw_execute_dft(def_param.plan_ifft,sp,sp)
+
+    !get real value back
+    s = dble(sp)
+
+    !return parameter values for next call
+    if (present(param)) then
+       param = def_param
+    end if
+
+    return
+
+  end subroutine d_ifft_2d
 
   !----------------------------------------------------
   !*   END Inverse Fourier Transform
@@ -366,7 +453,7 @@ contains
   subroutine d_psd_1d_f (s,f,sp,param)
     real(kind=8)     ,dimension(:)              ::s
     complex(kind=8)  ,dimension(:)              ::sp
-    type(psd_param) ,optional                   ::param
+    type(psd_param)  ,optional                  ::param
     real(kind=8)     ,dimension(:)              ::f
 
     type(psd_param)                             ::def_param
@@ -1142,6 +1229,108 @@ contains
     return
 
   end subroutine d_xcor_1d
+
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  subroutine d_xcor_2d(s1,s2,tau,xcor,param)
+    real(kind=8)     ,dimension(:,:)            ::s1,s2
+    real(kind=8)     ,dimension(:,:)            ::xcor
+    type(psd_param)  ,optional                  ::param
+    real(kind=8)     ,dimension(:,:,:)          ::tau
+
+    complex(kind=8) ,dimension(:,:),allocatable ::xsp1,xsp2,xsp_full
+    real(kind=8)    ,dimension(:,:),allocatable ::xcor_tmp_x,xcor_tmp_y
+    type(psd_param)                             ::def_param
+
+    real(kind=8)                                ::rms1,rms2
+    real(kind=8)                                ::avg1,avg2
+    integer(kind=8)                             ::nx,ny
+    !---------------------------------------------------
+
+    if (size(tau,1) /= size(xcor,1) .or. &
+         size(tau,2) /= size(xcor,2)) then
+       STOP 'size(tau) /= size(cor) in d_xcor_2d'
+    else if (size(tau,1) /= size(s1,1) .or. &
+         size(tau,2) /= size(s1,2)) then
+       STOP 'size(tau) /= size(s1) in d_xcor_2d'
+    else if (size(tau,1) /= size(s2,1) .or. &
+         size(tau,2) /= size(s2,2)) then
+       STOP 'size(tau) /= size(s2) in d_xcor_2d'
+    end if
+
+    nx = size(s1,1)
+    ny = size(s1,2)
+
+    if (present(param)) then
+       def_param = param
+       ! we handle nfft normalisation in here
+       def_param.norm_fft = .false.
+    end if
+
+    !fill in tau
+    do i=1,nx
+       do j=1,ny
+          tau(i,j,1) = (dble(i)-nx/2-1)/def_param.fe
+          tau(i,j,2) = (dble(j)-ny/2-1)/def_param.fe
+       end do
+    end do
+
+    !compute interspectrum
+    allocate(xsp1(nx,ny))
+    allocate(xsp2(nx,ny))
+    call d_fft_2d(s1,xsp1,def_param)
+    call d_fft_2d(s2,xsp2,def_param)
+
+    !removing the mean value (set zero freq to 0)
+    xsp1(1,1) = 0.d0
+    xsp2(1,1) = 0.d0
+
+    !compute inverse FFT
+    allocate(xsp_full(nx,ny))
+    xsp_full  = xsp1*dconjg(xsp2)
+    call d_ifft_2d(xsp_full,xcor,def_param)
+
+    !free ffts
+    call free_ifft(def_param)
+    call free_fft(def_param)
+
+    !swap x
+    allocate(xcor_tmp_x(nx/2,ny))
+    xcor_tmp_x(:,:)   = xcor(1:nx/2,:)
+    xcor(1:nx/2,:)    = xcor(nx/2+1:nx,:)
+    xcor(nx/2+1:nx,:) = xcor_tmp_x(:,:)
+    deallocate(xcor_tmp_x)
+
+    !swap y
+    allocate(xcor_tmp_y(nx,ny/2))
+    xcor_tmp_y(:,:)   = xcor(:,1:ny/2)
+    xcor(:,1:ny/2)    = xcor(:,ny/2+1:ny)
+    xcor(:,ny/2+1:ny) = xcor_tmp_y(:,:)
+    deallocate(xcor_tmp_y)
+
+
+    !norm_fft the correlation
+    xcor =xcor*def_param.fe/dble(nx*ny)**2
+
+    !getthe correlation coefficient
+    if (def_param.rms_norm) then
+       avg1 = sum(s1)/nx/ny
+       avg2 = sum(s2)/nx/ny
+
+       rms1 = sum((s1-avg1)**2)/nx/ny
+       rms2 = sum((s2-avg2)**2)/nx/ny
+
+       if (rms1 /= 0.d0 .and. rms2 /= 0.d0) then
+          xcor = xcor/sqrt(rms1*rms2)
+       end if
+    end if
+
+    deallocate(xsp1,xsp2,xsp_full)
+
+    return
+
+  end subroutine d_xcor_2d
+
 
   !----------------------------------------------------
   !*  End Wienner-Kintchine
