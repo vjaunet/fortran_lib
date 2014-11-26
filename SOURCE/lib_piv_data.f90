@@ -192,6 +192,8 @@ contains
     open(unit=110,file=trim(filename),form='unformatted',&
          action='write', access='stream', status='unknown')
 
+    write(110)datapiv.typeofgrid
+
     !write datapiv info header
     if (datapiv.typeofgrid == "P") then
        write(110)datapiv.nr, datapiv.ntheta,&
