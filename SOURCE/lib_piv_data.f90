@@ -6,7 +6,7 @@ module lib_piv_data
   !=================Specification=============================
   !
   !
-  ! PIV data container
+  ! PIV data container and useful routines
   !
   !
   !
@@ -33,64 +33,14 @@ module lib_piv_data
      procedure :: read_bin  => piv_io_read
      procedure :: write_bin => piv_io_write
      procedure :: cal_stats => piv_stats
+     procedure :: get_fluctuations => piv_fluctuations
      procedure :: set_x     => piv_set_x
-     procedure :: destroy   => piv_destroy
      procedure :: replace_outlier => piv_replace_outlier
+     procedure :: destroy   => piv_destroy
 
   end type PIVdata
 
 contains
-
-  subroutine piv_replace_outlier(datapiv,method,wsize)
-    class(PIVdata)                     ::datapiv
-    character(len=*)                   ::method
-    real                               ::um
-    integer                            ::ii,jj,i0
-    real                               ::nval
-    integer    ,optional               ::wsize
-    !-----------------------------------------------
-
-    select case(method)
-
-    case ("POD")
-
-       call gappypod(datapiv.u,datapiv.w,int(10),real(1e-8))
-
-    case("AVG")
-
-       if (.not.PRESENT(wsize)) wsize = 3;
-
-       i0=wsize/2
-
-       do is=1,datapiv.nsamples
-          do j=1+i0,datapiv.ny-i0
-             do i=1+i0,datapiv.nx-i0
-                if (datapiv.w(i,j,is)==0.d0) then
-
-                   do ic=1,datapiv.ncomponent
-                      um = 0.d0
-                      nval = 0
-                      do ii=-i0,i0,1
-                         do jj=-i0,i0,1
-                            um = um + datapiv.u(i+ii,j+jj,ic,is)&
-                                 *datapiv.w(i+ii,j+jj,is)
-                            nval = nval + datapiv.w(i+ii,j+jj,is)
-                         end do
-                      end do
-
-                      if (nval > 0) um = um / nval
-
-                      datapiv.u(i,j,ic,is) = um
-                   end do
-
-                end if
-             end do
-          end do
-       end do
-
-    end select
-
-  end subroutine piv_replace_outlier
 
   subroutine piv_set_x(datapiv)
     class(PIVdata)                     ::datapiv
@@ -149,21 +99,36 @@ contains
        datapiv.w = 1.0
     end if
 
-    do j=1,n2
-       do i=1,n1
-          do ic=1,datapiv.ncomponent
+    do ic=1,datapiv.ncomponent
+       do j=1,n2
+          do i=1,n1
+
              call average(datapiv.u(i,j,ic,:),&
                   datapiv.ustat(i,j,ic),&
                   datapiv.w(i,j,:))
              call rms    (datapiv.u(i,j,ic,:),&
                   datapiv.ustat(i,j,ic+datapiv.ncomponent),&
                   datapiv.w(i,j,:))
+
           end do
        end do
     end do
 
 
   end subroutine piv_stats
+
+  subroutine piv_fluctuations(datapiv)
+    class(PIVdata)                     ::datapiv
+    integer                            ::n1,n2
+    !-----------------------------------------------
+
+    call piv_stats(datapiv)
+
+    do is=1,datapiv.nsamples
+       datapiv.u(:,:,:,is) = datapiv.u(:,:,:,is) - datapiv.ustat(:,:,:)
+    end do
+
+  end subroutine piv_fluctuations
 
   subroutine piv_io_read(datapiv,filename)
     class(PIVdata)                     ::datapiv
@@ -177,6 +142,8 @@ contains
 
        open(unit=110,file=trim(filename),form='unformatted',&
             action='read', access='stream', status='old')
+
+       read(110)datapiv.typeofgrid
 
        if (datapiv.typeofgrid == "P") then
           read(110)datapiv.nr, datapiv.ntheta,&
@@ -249,6 +216,8 @@ contains
 
   end subroutine piv_io_write
 
+
+
   subroutine piv_destroy(datapiv)
     class(PIVdata)                     ::datapiv
     !-------------------------------------------
@@ -260,5 +229,251 @@ contains
 
   end subroutine piv_destroy
 
+
+
+  !***********************************************************************
+  !
+  !          PIV filter routines
+  !
+  !***********************************************************************
+  subroutine piv_replace_outlier(datapiv,method,wsize)
+    class(PIVdata)                            ::datapiv
+    character(len=*)                          ::method
+    integer    ,optional                      ::wsize
+
+    real                                      ::um
+    integer                                   ::ii,jj,i0
+    integer                                   ::nx,ny,ns,nc
+    real                                      ::nval
+
+
+    integer(kind=8)                           ::id,if,jd,jf,ivec,nvec
+    real(kind=8) ,dimension(:) ,allocatable   ::neighbor,neighflag
+    !-------------------------------------------------------------
+
+    if (.not.PRESENT(wsize)) wsize = 3;
+
+    if (method == "POD") then
+       call gappypod(datapiv.u,datapiv.w,int(10),real(1e-8))
+       return
+    end if
+
+    ns = datapiv.nsamples
+    nc = datapiv.ncomponent
+    if (datapiv.typeofgrid == 'C') then
+       ny = datapiv.ny
+       nx = datapiv.nx
+    else if (datapiv.typeofgrid == 'P') then
+       ny = datapiv.nr
+       nx = datapiv.ntheta
+    end if
+
+    !loop through all the samples
+    do is=1,ns
+       do ic=1,nc
+          do j=1,ny
+             do i=1,nx
+
+                !computing the Interrogation Area size
+                if (i==1) then
+                   id = 0  ; if = wsize
+                else if (i==nx) then
+                   id = -wsize ; if = 0
+                end if
+
+                if (j==1) then
+                   jd =  0 ; jf = wsize
+                else if (j==ny) then
+                   jd = -wsize ; jf = 0
+                end if
+
+                !storing the Interrogation area
+                nvec = (if-id+1)*(jf-jd+1)
+                allocate (neighbor(nvec))
+                allocate (neighflag(nvec))
+                ivec = 1
+                do ii=id,if
+                   do jj =jd,jf
+                      if (.not.(ii/=0 .and. jj/=0)) then
+                         neighbor(ivec)  = datapiv.u(i+ii,j+jj,ic,is)
+                         neighflag(ivec) = datapiv.w(i+ii,j+jj,is)
+                         ivec = ivec +1
+                      end if
+                   end do
+                end do
+
+                select case(method)
+
+                case ("UOD")
+
+                   !computing the UOD on the subsample
+                   call UOD_filter(datapiv.u(i,j,ic,is),neighbor,neighflag,Nvec)
+
+                case("AVG")
+
+                   !computing the AVERAGE filter on the subsample
+                   call average_filter(datapiv.u(i,j,ic,is),neighbor,neighflag,Nvec)
+
+                case("MED")
+
+                   !computing the MEDIAN filter on the subsample
+                   call median_filter(datapiv.u(i,j,ic,is),neighbor,neighflag,Nvec)
+
+                end select
+
+             end do
+          end do
+       end do
+    end do
+
+    return
+
+  end subroutine piv_replace_outlier
+
+  SUBROUTINE UOD_filter(input,neighbor,flag,Nneigh)
+    use qsort_c
+    implicit none
+
+    !input variables
+    real(kind=4)                                       ::input
+    integer(kind=8)                                    ::Nneigh
+    real(kind=8)        ,dimension(NNEIGH)             ::neighbor,flag
+
+    !Intern variables
+    real(kind=8)                                       ::Um,rm,r0
+    real(kind=8)        ,dimension(:) ,allocatable     ::tosort
+    real(kind=8)        ,dimension(:) ,allocatable     ::resid
+    real(kind=8)                                       ::epsilon = 0.2
+    real(kind=8)                                       ::threshold = 2.d0
+
+    !loops
+    integer(kind=8)                                    ::i,pos,nvalid
+    integer(kind=8)                                    ::iv
+
+    !------------------------------------------------------
+
+    nvalid = 0
+    do i=1,Nneigh
+       if (flag(i) == 1.d0) then
+          nvalid = nvalid + 1
+       end if
+    end do
+
+    allocate(tosort(Nvalid))
+    iv = 1
+    do i=1,nvalid
+       if (flag(i) == 1.d0) then
+          tosort(iv) = neighbor(i)
+          iv = iv +1
+       end if
+    end do
+
+    call QsortC(tosort)
+    Um = tosort(nvalid/2)
+
+    allocate(resid(Nvalid))
+    iv = 1
+    do i=1,nvalid
+       if (flag(i) == 1.d0) then
+          resid(iv) = neighbor(i)-Um
+          iv = iv +1
+       end if
+    end do
+    tosort = resid
+    call QsortC(tosort)
+    rm = tosort(nvalid/2)
+
+    r0 = abs(input - Um)/(rm + epsilon)
+
+    if (r0 > threshold) then
+       input = Um
+       flag(1) = -1.d0
+    end if
+
+
+  END SUBROUTINE UOD_filter
+
+  SUBROUTINE median_filter(input,neighbor,flag,Nneigh)
+    use qsort_c
+    implicit none
+
+    !input variables
+    real(kind=4)                                       ::input
+    integer(kind=8)                                    ::Nneigh
+    real(kind=8)        ,dimension(NNEIGH)             ::neighbor,flag
+
+    !Intern variables
+    real(kind=8)                                       ::median
+    real(kind=8)        ,dimension(:) ,allocatable     ::tosort
+
+    !loops
+    integer(kind=8)                                    ::i,pos,nvalid
+
+    !------------------------------------------------------
+
+    nvalid = 0
+    do i=1,Nneigh
+       if (flag(i) == 1.d0) then
+          nvalid = nvalid + 1
+       end if
+    end do
+
+    allocate(tosort(Nvalid))
+    nvalid = 1
+    do i=1,nvalid
+       if (flag(i) == 1.d0) then
+          tosort(nvalid) = neighbor(i)
+          nvalid = nvalid + 1
+       end if
+    end do
+
+    call QsortC(tosort)
+    median = neighbor(nvalid/2)
+
+    if (abs(input) > 2.d0*median) then
+       input = median
+       flag(1) = 0.d0
+    end if
+
+
+  END SUBROUTINE median_filter
+
+  SUBROUTINE average_filter(input,neighbor,flag,Nneigh)
+    implicit none
+
+    !input variables
+    real(kind=4)                                       ::input
+    integer(kind=8)                                    ::Nneigh
+    real(kind=8)        ,dimension(NNEIGH)             ::neighbor,flag
+
+    !Intern variables
+    real(kind=8)                                       ::mean
+    real(kind=8)                                       ::rms
+
+    !loops
+    integer(kind=8)                                    ::i,pos
+
+    !------------------------------------------------------
+
+    mean = 0.d0
+    do i=1,Nneigh
+       mean = mean + neighbor(i)*flag(i)
+    end do
+    mean = mean/sum(flag(:))
+
+    rms = 0.d0
+    do i=1,Nneigh
+       rms = rms + (((neighbor(i)-mean)**2)*flag(i))
+    end do
+    rms = sqrt(rms/sum(flag(:)))
+
+    if (sum(flag(:)) > 3) then
+       if (abs(input-mean) > 2.d0*rms) then
+          input = mean
+          flag(1) = 0.d0
+       end if
+    end if
+
+  END SUBROUTINE average_filter
 
 end module lib_piv_data

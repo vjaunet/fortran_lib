@@ -33,6 +33,7 @@ ALL:$(OBJ)
 	$(CC) -c lib_stat.f90  $(LIBS); \
 	$(CC) -c interpol.f90  $(LIBS); \
 	$(CC) -c tecplot_io.f90  $(LIBS); \
+	$(CC) -c qsort.f90  $(LIBS); \
 	$(CC) $(IPATH) -c lib_piv_data.f90  $(LIBS);
 
 clean:
@@ -58,8 +59,11 @@ pod:
 	@cd SOURCE/; \
 	$(CC) -c lib_pod.f90  $(LIBS);
 
+qsort:
+	@cd SOURCE/; \
+	$(CC) -c qsort.f90  $(LIBS);
 
-piv_data: stat pod
+piv_data: stat pod qsort
 	@cd SOURCE/; \
 	$(CC) -c lib_piv_data.f90  $(LIBS);
 
@@ -70,7 +74,7 @@ install:
 	ar rc SOURCE/libstat.a SOURCE/lib_stat.o
 	ar rc SOURCE/libpod.a SOURCE/lib_pod.o
 	ar rc SOURCE/libpivdata.a \
-	SOURCE/lib_piv_data.o SOURCE/lib_pod.o SOURCE/lib_stat.o
+	SOURCE/lib_piv_data.o SOURCE/lib_pod.o SOURCE/lib_stat.o SOURCE/qsort.o
 	ar rc SOURCE/libspectral.a SOURCE/lib_spectral.o
 	mv SOURCE/*.mod MOD/.
 	mv SOURCE/*.a LIB/.
