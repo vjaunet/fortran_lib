@@ -277,16 +277,20 @@ contains
              do i=1,nx
 
                 !computing the Interrogation Area size
-                if (i==1) then
-                   id = 0  ; if = wsize
-                else if (i==nx) then
-                   id = -wsize ; if = 0
+                if (i <= wsize/2) then
+                   id = i-wsize/2 ; if = wsize/2
+                else if (i > nx-wsize/2) then
+                   id = -wsize/2 ; if = nx-i
+                else
+                   id = -wsize/2 ; if = wsize/2
                 end if
 
-                if (j==1) then
-                   jd =  0 ; jf = wsize
-                else if (j==ny) then
-                   jd = -wsize ; jf = 0
+                if (j <= wsize/2) then
+                   jd = j-wsize/2 ; jf = wsize/2
+                else if (j > ny-wsize/2) then
+                   jd = -wsize/2 ; jf = ny - j
+                else
+                   jd = -wsize/2 ; jf = wsize/2
                 end if
 
                 !storing the Interrogation area
@@ -296,11 +300,9 @@ contains
                 ivec = 1
                 do ii=id,if
                    do jj =jd,jf
-                      if (.not.(ii/=0 .and. jj/=0)) then
-                         neighbor(ivec)  = datapiv.u(i+ii,j+jj,ic,is)
-                         neighflag(ivec) = datapiv.w(i+ii,j+jj,is)
-                         ivec = ivec +1
-                      end if
+                      neighbor(ivec)  = dble(datapiv.u(i+ii,j+jj,ic,is))
+                      neighflag(ivec) = dble(datapiv.w(i+ii,j+jj,is))
+                      ivec = ivec+1
                    end do
                 end do
 
@@ -309,19 +311,22 @@ contains
                 case ("UOD")
 
                    !computing the UOD on the subsample
-                   call UOD_filter(datapiv.u(i,j,ic,is),neighbor,neighflag,Nvec)
+                   call UOD_filter(datapiv.u(i,j,ic,is),neighbor,neighflag,nvec)
 
                 case("AVG")
 
                    !computing the AVERAGE filter on the subsample
-                   call average_filter(datapiv.u(i,j,ic,is),neighbor,neighflag,Nvec)
+                   call average_filter(datapiv.u(i,j,ic,is),neighbor,neighflag,nvec)
 
                 case("MED")
 
                    !computing the MEDIAN filter on the subsample
-                   call median_filter(datapiv.u(i,j,ic,is),neighbor,neighflag,Nvec)
+                   call median_filter(datapiv.u(i,j,ic,is),neighbor,neighflag,nvec)
 
                 end select
+
+                deallocate(neighbor)
+                deallocate(neighflag)
 
              end do
           end do
@@ -451,11 +456,17 @@ contains
     !Intern variables
     real(kind=8)                                       ::mean
     real(kind=8)                                       ::rms
+    real(kind=8)                                       ::sumf
 
     !loops
     integer(kind=8)                                    ::i,pos
 
     !------------------------------------------------------
+
+    sumf = sum(flag(:))
+    if (sumf < 3. ) then
+       return
+    end if
 
     mean = 0.d0
     do i=1,Nneigh
@@ -469,11 +480,9 @@ contains
     end do
     rms = sqrt(rms/sum(flag(:)))
 
-    if (sum(flag(:)) > 3) then
-       if (abs(input-mean) > 2.d0*rms) then
-          input = mean
-          flag(1) = 0.d0
-       end if
+    if (abs(input-mean) > 2.d0*rms) then
+       input = mean
+       flag(1) = 0.d0
     end if
 
   END SUBROUTINE average_filter
