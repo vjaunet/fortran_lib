@@ -16,16 +16,26 @@ module lib_piv_data
   integer, private :: i,j,ic,is
 
   type PIVdata
+     !data indices and scaling
      character ::typeofgrid="C"
      integer   ::nx,ny,nsamples,ncomponent,pixel_step
      real      ::dx,x0,dy,y0 !for scaling
-     integer   ::ntheta,nr
+     integer   ::ntheta,nr,fs=1
      real      ::dr,dtheta
-     real      ::z_pos=0,fs=1
+     real      ::z_pos=0
+
+     !stagnation conditions
+     integer   ::ncondgen
+     real  ,   dimension(:) ,allocatable  ::condgen
+
+     !comments
+     character(len=500)  ::comments
+
+     !data containers
      real, dimension(:,:,:,:), allocatable ::u
      real, dimension(:,:,:),   allocatable ::x
 
-     !stat containers
+     !statistics containers
      real, dimension(:,:,:),   allocatable ::ustat
      real, dimension(:,:,:),   allocatable ::w
 
@@ -134,6 +144,8 @@ contains
     class(PIVdata)                     ::datapiv
     character(len=*)                   ::filename
     logical                            ::file_exists
+
+    integer                            ::n1,n2
     !----------------------------------------------
 
     !check existence of binary data file
@@ -151,6 +163,10 @@ contains
                datapiv.dr, datapiv.dtheta,&
                datapiv.fs
 
+          n1 = datapiv.nr
+          n2 = datapiv.ntheta
+
+          !read data containers
           allocate(datapiv.u(datapiv.nr,&
                datapiv.ntheta,&
                datapiv.ncomponent,datapiv.nsamples))
@@ -164,16 +180,31 @@ contains
                datapiv.x0, datapiv.y0,&
                datapiv.pixel_step,datapiv.fs
 
-          !read velocity samples
-          allocate(datapiv.u(datapiv.nx,&
-               datapiv.ny,&
-               datapiv.ncomponent,datapiv.nsamples))
-          read(110)datapiv.u
+
+          n1 = datapiv.nx
+          n2 = datapiv.ny
 
        else
           write(06,*)"piv_io_read : impossible to define the type of grid"
           STOP
        end if
+
+
+          !read statgnation conditions if some
+          read(110)datapiv.ncondgen
+          print*,datapiv.ncondgen
+          if (datapiv.ncondgen/=0) then
+             allocate(datapiv.condgen(datapiv.ncondgen))
+             read(110)datapiv.condgen
+          end if
+
+          !read 500 comment characters
+          read(110)datapiv.comments
+
+          !read velocity samples
+          allocate(datapiv.u(n1,n2,datapiv.ncomponent,&
+               datapiv.nsamples))
+          read(110)datapiv.u
 
        close(110)
     else
