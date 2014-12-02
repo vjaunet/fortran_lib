@@ -6,7 +6,9 @@ module lib_piv_data
   !=================Specification=============================
   !
   !
-  ! PIV data container and useful routines
+  !
+  !
+  !            PIV data container and useful routines
   !
   !
   !
@@ -14,6 +16,25 @@ module lib_piv_data
   !===========================================================
 
   integer, private :: i,j,ic,is
+
+  type stag_cond
+     !stagnation conditions
+     integer   ::ncondgen
+
+     real      ::P0,T0
+     real      ::Ps,Ts
+     real      ::Patm,Tatm
+     real      ::Mach
+     real  ,   dimension(:) ,allocatable  :: remain
+  end type stag_cond
+
+  type statistics
+     !statistics containers
+     real, dimension(:,:,:),   allocatable ::u_mean
+     real, dimension(:,:,:),   allocatable ::u_rms
+     real, dimension(:,:,:),   allocatable ::u_skew
+     real, dimension(:,:,:),   allocatable ::u_flat
+  end type statistics
 
   type PIVdata
      !data indices and scaling
@@ -24,28 +45,27 @@ module lib_piv_data
      real      ::dr,dtheta
      real      ::z_pos=0
 
-     !stagnation conditions
-     integer   ::ncondgen
-     real  ,   dimension(:) ,allocatable  ::condgen
-
      !comments
      character(len=500)  ::comments
 
-     !data containers
-     real, dimension(:,:,:,:), allocatable ::u
-     real, dimension(:,:,:),   allocatable ::x
+     !stagnation conditions
+     type(stag_cond) ::condgen
 
-     !statistics containers
-     real, dimension(:,:,:),   allocatable ::ustat
-     real, dimension(:,:,:),   allocatable ::w
+     !raw data containers
+     real, dimension(:,:,:,:), allocatable ::u !velocity container
+     real, dimension(:,:,:),   allocatable ::x !positions
+     real, dimension(:,:,:),   allocatable ::w !Flag and weigth
+
+     !statistics
+     type(statistics) ::stat
 
    contains
      procedure :: read_bin  => piv_io_read
      procedure :: write_bin => piv_io_write
-     procedure :: cal_stats => piv_stats
-     procedure :: get_fluctuations => piv_fluctuations
      procedure :: set_x     => piv_set_x
      procedure :: replace_outlier => piv_replace_outlier
+     procedure :: cal_stats => piv_stats
+     procedure :: get_fluctuations => piv_fluctuations
      procedure :: destroy   => piv_destroy
 
   end type PIVdata
@@ -103,7 +123,8 @@ contains
        n2 = datapiv.ntheta
     end if
 
-    allocate(datapiv.ustat(n1,n2,2*datapiv.ncomponent))
+    allocate(datapiv.stat.u_mean(n1,n2,datapiv.ncomponent))
+    allocate(datapiv.stat.u_rms(n1,n2,datapiv.ncomponent))
     if (.not. allocated(datapiv.w)) then
        allocate(datapiv.w(n1,n2,datapiv.nsamples))
        datapiv.w = 1.0
@@ -114,10 +135,10 @@ contains
           do i=1,n1
 
              call average(datapiv.u(i,j,ic,:),&
-                  datapiv.ustat(i,j,ic),&
+                  datapiv.stat.u_mean(i,j,ic),&
                   datapiv.w(i,j,:))
              call rms    (datapiv.u(i,j,ic,:),&
-                  datapiv.ustat(i,j,ic+datapiv.ncomponent),&
+                  datapiv.stat.u_rms(i,j,ic),&
                   datapiv.w(i,j,:))
 
           end do
@@ -135,7 +156,7 @@ contains
     call piv_stats(datapiv)
 
     do is=1,datapiv.nsamples
-       datapiv.u(:,:,:,is) = datapiv.u(:,:,:,is) - datapiv.ustat(:,:,:)
+       datapiv.u(:,:,:,is) = datapiv.u(:,:,:,is) - datapiv.stat.u_mean(:,:,:)
     end do
 
   end subroutine piv_fluctuations
@@ -190,21 +211,30 @@ contains
        end if
 
 
-          !read statgnation conditions if some
-          read(110)datapiv.ncondgen
-          print*,datapiv.ncondgen
-          if (datapiv.ncondgen/=0) then
-             allocate(datapiv.condgen(datapiv.ncondgen))
-             read(110)datapiv.condgen
-          end if
+       !read statgnation conditions if some
+       read(110)datapiv.condgen.ncondgen
+       if (datapiv.condgen.ncondgen == 7) then
+          read(110)datapiv.condgen.P0
+          read(110)datapiv.condgen.T0
+          read(110)datapiv.condgen.Ps
+          read(110)datapiv.condgen.Ts
+          read(110)datapiv.condgen.Patm
+          read(110)datapiv.condgen.Tatm
+          read(110)datapiv.condgen.Mach
+       end if
 
-          !read 500 comment characters
-          read(110)datapiv.comments
+       if (datapiv.condgen.ncondgen > 7) then
+          allocate(datapiv.condgen.remain(datapiv.condgen.ncondgen-7))
+          read(110)datapiv.condgen.remain
+       end if
 
-          !read velocity samples
-          allocate(datapiv.u(n1,n2,datapiv.ncomponent,&
-               datapiv.nsamples))
-          read(110)datapiv.u
+       !read 500 comment characters
+       read(110)datapiv.comments
+
+       !read velocity samples
+       allocate(datapiv.u(n1,n2,datapiv.ncomponent,&
+            datapiv.nsamples))
+       read(110)datapiv.u
 
        close(110)
     else
@@ -243,6 +273,25 @@ contains
        STOP
     end if
 
+    !write statgnation conditions if some
+    write(110)datapiv.condgen.ncondgen
+    if (datapiv.condgen.ncondgen == 7) then
+       write(110)datapiv.condgen.P0
+       write(110)datapiv.condgen.T0
+       write(110)datapiv.condgen.Ps
+       write(110)datapiv.condgen.Ts
+       write(110)datapiv.condgen.Patm
+       write(110)datapiv.condgen.Tatm
+       write(110)datapiv.condgen.Mach
+    end if
+
+    if (datapiv.condgen.ncondgen > 7) then
+       allocate(datapiv.condgen.remain(datapiv.condgen.ncondgen-7))
+       write(110)datapiv.condgen.remain
+    end if
+
+
+
     write(110)datapiv.u
 
     close(110)
@@ -256,7 +305,10 @@ contains
     !-------------------------------------------
 
     if (allocated(datapiv.u)) deallocate(datapiv.u)
-    if (allocated(datapiv.ustat)) deallocate(datapiv.ustat)
+    if (allocated(datapiv.stat.u_mean)) deallocate(datapiv.stat.u_mean)
+    if (allocated(datapiv.stat.u_rms))  deallocate(datapiv.stat.u_rms)
+    if (allocated(datapiv.stat.u_skew)) deallocate(datapiv.stat.u_skew)
+    if (allocated(datapiv.stat.u_flat)) deallocate(datapiv.stat.u_flat)
     if (allocated(datapiv.x)) deallocate(datapiv.x)
     if (allocated(datapiv.w)) deallocate(datapiv.w)
 
