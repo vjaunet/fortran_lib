@@ -32,7 +32,7 @@ ALL:$(OBJ)
 	$(CC) -c lib_pod.f90  $(LIBS); \
 	$(CC) -c lib_stat.f90  $(LIBS); \
 	$(CC) -c interpol.f90  $(LIBS); \
-	$(CC) -c tecplot_io.f90  $(LIBS); \
+	$(CC) -c lib_tecplot_io.f90  $(LIBS); \
 	$(CC) -c qsort.f90  $(LIBS); \
 	$(CC) $(IPATH) -c lib_piv_data.f90  $(LIBS);
 
@@ -53,7 +53,7 @@ interpol:
 
 tecplot:
 	@cd SOURCE/; \
-	$(CC) -c tecplot_io.f90  $(LIBS);
+	$(CC) -c lib_tecplot_io.f90  $(LIBS);
 
 pod:
 	@cd SOURCE/; \
@@ -69,7 +69,7 @@ piv_data: stat pod qsort
 
 
 install:
-	ar rc SOURCE/libtecplot.a SOURCE/tecplot_io.o
+	ar rc SOURCE/libtecplot.a SOURCE/lib_tecplot_io.o
 	ar rc SOURCE/libinterpol.a SOURCE/interpol.o
 	ar rc SOURCE/libstat.a SOURCE/lib_stat.o
 	ar rc SOURCE/libpod.a SOURCE/lib_pod.o
