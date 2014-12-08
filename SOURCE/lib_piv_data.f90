@@ -17,17 +17,6 @@ module lib_piv_data
 
   integer, private :: i,j,ic,is
 
-  type stag_cond
-     !stagnation conditions
-     integer   ::ncondgen
-
-     real      ::P0,T0
-     real      ::Ps,Ts
-     real      ::Patm,Tatm
-     real      ::Mach
-     real  ,   dimension(:) ,allocatable  :: remain
-  end type stag_cond
-
   type statistics
      !statistics containers
      real, dimension(:,:,:),   allocatable ::u_mean
@@ -39,17 +28,20 @@ module lib_piv_data
   type PIVdata
      !data indices and scaling
      character ::typeofgrid="C"
-     integer   ::nx,ny,nsamples,ncomponent,pixel_step
-     real      ::dx,x0,dy,y0 !for scaling
-     integer   ::ntheta,nr,fs=1
-     real      ::dr,dtheta
+     integer   ::nx,ny,nsamples,ncomponent
+     integer   ::ntheta,nr
+     real      ::dx=1,x0=0,dy=1,y0=0 !for scaling
+     real      ::dr=0,dtheta=0
+     integer   ::pixel_step=1
      real      ::z_pos=0
+     integer   ::fs=1
 
      !comments
-     character(len=500)  ::comments
+     character(len=500)  ::comments = ""
 
      !stagnation conditions
-     type(stag_cond) ::condgen
+     integer   ::ncgen
+     real ,dimension(:) ,allocatable :: cgen
 
      !raw data containers
      real, dimension(:,:,:,:), allocatable ::u !velocity container
@@ -80,8 +72,7 @@ contains
 
        !fill in x for cartesian coodinate systeme
        allocate(datapiv.x(datapiv.nx,&
-            datapiv.ny,&
-            datapiv.ncomponent))
+            datapiv.ny,3))
        do i=1,datapiv.nx
           do j=1,datapiv.ny
              datapiv.x(i,j,1) = real(i*datapiv.pixel_step) * datapiv.dx + datapiv.x0
@@ -94,8 +85,7 @@ contains
 
        !fill in x for polar coodinate systeme
        allocate(datapiv.x(datapiv.nr,&
-            datapiv.ntheta,&
-            datapiv.ncomponent))
+            datapiv.ntheta,3))
        do i=1,datapiv.nr
           do j=1,datapiv.ntheta
              datapiv.x(i,j,1) = (i-1) * datapiv.dr * cos((j-1)*datapiv.dtheta)
@@ -210,22 +200,11 @@ contains
           STOP
        end if
 
-
        !read statgnation conditions if some
-       read(110)datapiv.condgen.ncondgen
-       if (datapiv.condgen.ncondgen == 7) then
-          read(110)datapiv.condgen.P0
-          read(110)datapiv.condgen.T0
-          read(110)datapiv.condgen.Ps
-          read(110)datapiv.condgen.Ts
-          read(110)datapiv.condgen.Patm
-          read(110)datapiv.condgen.Tatm
-          read(110)datapiv.condgen.Mach
-       end if
-
-       if (datapiv.condgen.ncondgen > 7) then
-          allocate(datapiv.condgen.remain(datapiv.condgen.ncondgen-7))
-          read(110)datapiv.condgen.remain
+       read(110)datapiv.ncgen
+       if (datapiv.ncgen > 0) then
+          allocate(datapiv.cgen(datapiv.ncgen))
+          read(110)datapiv.cgen
        end if
 
        !read 500 comment characters
@@ -274,22 +253,13 @@ contains
     end if
 
     !write statgnation conditions if some
-    write(110)datapiv.condgen.ncondgen
-    if (datapiv.condgen.ncondgen == 7) then
-       write(110)datapiv.condgen.P0
-       write(110)datapiv.condgen.T0
-       write(110)datapiv.condgen.Ps
-       write(110)datapiv.condgen.Ts
-       write(110)datapiv.condgen.Patm
-       write(110)datapiv.condgen.Tatm
-       write(110)datapiv.condgen.Mach
+    write(110)datapiv.ncgen
+    if (datapiv.ncgen > 0) then
+       write(110)datapiv.cgen
     end if
 
-    if (datapiv.condgen.ncondgen > 7) then
-       allocate(datapiv.condgen.remain(datapiv.condgen.ncondgen-7))
-       write(110)datapiv.condgen.remain
-    end if
-
+    !write comments
+    write(110)datapiv.comments
 
 
     write(110)datapiv.u
@@ -311,6 +281,7 @@ contains
     if (allocated(datapiv.stat.u_flat)) deallocate(datapiv.stat.u_flat)
     if (allocated(datapiv.x)) deallocate(datapiv.x)
     if (allocated(datapiv.w)) deallocate(datapiv.w)
+    if (allocated(datapiv.cgen)) deallocate(datapiv.cgen)
 
   end subroutine piv_destroy
 
