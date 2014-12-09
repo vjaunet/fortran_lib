@@ -28,6 +28,18 @@ module lib_stat
      module procedure f_rms_1d_1c,f_rms_1d_1c_moy
   end interface rms
 
+  interface skewness
+     module procedure f_skewness_1d_1c
+  end interface skewness
+
+  interface flatness
+     module procedure f_flatness_1d_1c
+  end interface flatness
+
+  interface xmoment
+     module procedure f_xmom_1d_1c
+  end interface xmoment
+
 contains
 
   subroutine d_average_1d_1c(var,moy,weight)
@@ -78,6 +90,8 @@ contains
     if (sumw /= 0.d0) then
        moy = sum(var(:)*w(:))/sumw
     end if
+
+    deallocate(w)
 
   end subroutine f_average_1d_1c
 
@@ -198,6 +212,95 @@ contains
 
   end subroutine f_rms_1d_1c_moy
 
+  subroutine f_skewness_1d_1c(var,skew,weight)
+    implicit none
+    real(kind=4)    ,dimension(:)                   ::var
+    real(kind=4)                                    ::skew
+    real(kind=4)                                    ::moy,rms,sumw
+    real(kind=4)    ,dimension(:)        ,optional  ::weight
+    real(kind=4)    ,dimension(:)     ,allocatable  ::w
+    !----------------------------------------------------------
+
+    nn = size(var,1)
+
+    allocate(w(nn))
+    if (present(weight)) then
+       w(:) = weight(:)
+    else
+       w(:) = 1.d0
+    end if
+
+    call f_average_1d_1c(var,moy,w)
+    call f_rms_1d_1c_moy(var,moy,rms,w)
+
+    skew = 0.d0
+    sumw = sum(w(:))
+    if (sumw /= 0.d0) then
+       skew = sum(w*((var(:)-moy)/rms)**3)
+       skew = skew/sumw
+    end if
+
+  end subroutine f_skewness_1d_1c
+
+  subroutine f_flatness_1d_1c(var,flat,weight)
+    implicit none
+    real(kind=4)    ,dimension(:)                   ::var
+    real(kind=4)                                    ::flat
+    real(kind=4)                                    ::moy,rms,sumw
+    real(kind=4)    ,dimension(:)        ,optional  ::weight
+    real(kind=4)    ,dimension(:)     ,allocatable  ::w
+    !----------------------------------------------------------
+
+    nn = size(var,1)
+
+    allocate(w(nn))
+    if (present(weight)) then
+       w(:) = weight(:)
+    else
+       w(:) = 1.d0
+    end if
+
+    call f_average_1d_1c(var,moy,w)
+    call f_rms_1d_1c_moy(var,moy,rms,w)
+
+    flat = 0.d0
+    sumw = sum(w(:))
+    if (sumw /= 0.d0) then
+       flat = sum(w*((var(:)-moy)/rms)**4) - 3.d0
+       flat = flat/sumw
+    end if
+
+  end subroutine f_flatness_1d_1c
+
+  subroutine f_xmom_1d_1c(var1,var2,xmom,weight)
+    implicit none
+    real(kind=4)    ,dimension(:)                   ::var1,var2
+    real(kind=4)                                    ::moy1,rms1,xmom
+    real(kind=4)                                    ::moy2,rms2,sumw
+    real(kind=4)    ,dimension(:)        ,optional  ::weight
+    real(kind=4)    ,dimension(:)     ,allocatable  ::w
+    !----------------------------------------------------------
+
+    nn = size(var1,1)
+
+    allocate(w(nn))
+    if (present(weight)) then
+       w(:) = weight(:)
+    else
+       w(:) = 1.d0
+    end if
+
+    call f_average_1d_1c(var1,moy1,w)
+    call f_average_1d_1c(var2,moy2,w)
+
+    xmom = 0.d0
+    sumw = sum(w(:))
+    if (sumw /= 0.d0) then
+       xmom = sum((var1-moy1)*(var2-moy2)*w)
+       xmom = xmom/sumw
+    end if
+
+  end subroutine f_xmom_1d_1c
 
 
 end module lib_stat

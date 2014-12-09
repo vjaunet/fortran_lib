@@ -1,6 +1,4 @@
 module lib_piv_data
-  use lib_stat
-  use lib_pod
   implicit none
 
   !=================Specification=============================
@@ -23,6 +21,7 @@ module lib_piv_data
      real, dimension(:,:,:),   allocatable ::u_rms
      real, dimension(:,:,:),   allocatable ::u_skew
      real, dimension(:,:,:),   allocatable ::u_flat
+     real, dimension(:,:,:),   allocatable ::xmoments
   end type statistics
 
   type PIVdata
@@ -102,6 +101,7 @@ contains
   end subroutine piv_set_x
 
   subroutine piv_stats(datapiv)
+    use lib_stat
     class(PIVdata)                     ::datapiv
     integer                            ::n1,n2
     !-----------------------------------------------
@@ -115,9 +115,12 @@ contains
 
     allocate(datapiv.stat.u_mean(n1,n2,datapiv.ncomponent))
     allocate(datapiv.stat.u_rms(n1,n2,datapiv.ncomponent))
+    allocate(datapiv.stat.u_skew(n1,n2,datapiv.ncomponent))
+    allocate(datapiv.stat.u_flat(n1,n2,datapiv.ncomponent))
+
     if (.not. allocated(datapiv.w)) then
        allocate(datapiv.w(n1,n2,datapiv.nsamples))
-       datapiv.w = 1.0
+       datapiv.w = 1.d0
     end if
 
     do ic=1,datapiv.ncomponent
@@ -127,14 +130,54 @@ contains
              call average(datapiv.u(i,j,ic,:),&
                   datapiv.stat.u_mean(i,j,ic),&
                   datapiv.w(i,j,:))
+
              call rms    (datapiv.u(i,j,ic,:),&
                   datapiv.stat.u_rms(i,j,ic),&
+                  datapiv.w(i,j,:))
+
+             call skewness (datapiv.u(i,j,ic,:),&
+                  datapiv.stat.u_skew(i,j,ic),&
+                  datapiv.w(i,j,:))
+
+             call flatness (datapiv.u(i,j,ic,:),&
+                  datapiv.stat.u_flat(i,j,ic),&
                   datapiv.w(i,j,:))
 
           end do
        end do
     end do
 
+    if (datapiv.ncomponent == 2) then
+       allocate(datapiv.stat.xmoments(n1,n2,1))
+       do j=1,n2
+          do i=1,n1
+             call xmoment(datapiv.u(i,j,1,:),&
+                  datapiv.u(i,j,2,:),&
+                  datapiv.stat.xmoments(i,j,1),&
+                  datapiv.w(i,j,:))
+          end do
+       end do
+    else if (datapiv.ncomponent == 3) then
+       allocate(datapiv.stat.xmoments(n1,n2,3))
+       do j=1,n2
+          do i=1,n1
+             call xmoment(datapiv.u(i,j,1,:),&
+                  datapiv.u(i,j,2,:),&
+                  datapiv.stat.xmoments(i,j,1),&
+                  datapiv.w(i,j,:))
+
+             call xmoment(datapiv.u(i,j,1,:),&
+                  datapiv.u(i,j,3,:),&
+                  datapiv.stat.xmoments(i,j,2),&
+                  datapiv.w(i,j,:))
+
+             call xmoment(datapiv.u(i,j,2,:),&
+                  datapiv.u(i,j,3,:),&
+                  datapiv.stat.xmoments(i,j,3),&
+                  datapiv.w(i,j,:))
+          end do
+       end do
+    end if
 
   end subroutine piv_stats
 
@@ -143,7 +186,9 @@ contains
     integer                            ::n1,n2
     !-----------------------------------------------
 
-    call piv_stats(datapiv)
+    if (.not.allocated(datapiv.stat.u_mean)) then
+       call piv_stats(datapiv)
+    end if
 
     do is=1,datapiv.nsamples
        datapiv.u(:,:,:,is) = datapiv.u(:,:,:,is) - datapiv.stat.u_mean(:,:,:)
@@ -293,6 +338,7 @@ contains
   !
   !***********************************************************************
   subroutine piv_replace_outlier(datapiv,method,wsize)
+    use lib_pod
     class(PIVdata)                            ::datapiv
     character(len=*)                          ::method
     integer    ,optional                      ::wsize
@@ -301,13 +347,30 @@ contains
     integer                                   ::ii,jj,i0
     integer                                   ::nx,ny,ns,nc
     real                                      ::nval
+    integer                                   ::w_def
 
 
     integer(kind=8)                           ::id,if,jd,jf,ivec,nvec
     real(kind=8) ,dimension(:) ,allocatable   ::neighbor,neighflag
     !-------------------------------------------------------------
 
-    if (.not.PRESENT(wsize)) wsize = 3;
+    !check method is correct
+    if (method /= "POD" .and. &
+         method /= "UOD" .and. &
+         method /= "AVG" .and. &
+         method /= "MED" ) then
+
+       STOP 'replace_outlier : unknown method must be &
+            &"POD", "UOD", "AVG", "MED"'
+
+    end if
+
+    !put default interrogation area size
+    if (.not. PRESENT(wsize)) then
+       w_def = 3;
+    else
+       w_def = wsize
+    end if
 
     if (method == "POD") then
        call gappypod(datapiv.u,datapiv.w,int(10),real(1e-8))
@@ -331,32 +394,35 @@ contains
              do i=1,nx
 
                 !computing the Interrogation Area size
-                if (i <= wsize/2) then
-                   id = i-wsize/2 ; if = wsize/2
-                else if (i > nx-wsize/2) then
-                   id = -wsize/2 ; if = nx-i
+                if (i <= w_def/2) then
+                   id = i-w_def/2 ; if = w_def/2
+                else if (i > nx-w_def/2) then
+                   id = -w_def/2 ; if = nx-i
                 else
-                   id = -wsize/2 ; if = wsize/2
+                   id = -w_def/2 ; if = w_def/2
                 end if
 
-                if (j <= wsize/2) then
-                   jd = j-wsize/2 ; jf = wsize/2
-                else if (j > ny-wsize/2) then
-                   jd = -wsize/2 ; jf = ny - j
+                if (j <= w_def/2) then
+                   jd = j-w_def/2 ; jf = w_def/2
+                else if (j > ny-w_def/2) then
+                   jd = -w_def/2 ; jf = ny - j
                 else
-                   jd = -wsize/2 ; jf = wsize/2
+                   jd = -w_def/2 ; jf = w_def/2
                 end if
 
                 !storing the Interrogation area
-                nvec = (if-id+1)*(jf-jd+1)
+                !excluding the center sample
+                nvec = (if-id+1)*(jf-jd+1)-1
                 allocate (neighbor(nvec))
                 allocate (neighflag(nvec))
                 ivec = 1
                 do ii=id,if
                    do jj =jd,jf
-                      neighbor(ivec)  = dble(datapiv.u(i+ii,j+jj,ic,is))
-                      neighflag(ivec) = dble(datapiv.w(i+ii,j+jj,is))
-                      ivec = ivec+1
+                      if (ii/=0 .and. jj/=0 ) then
+                         neighbor(ivec)  = dble(datapiv.u(i+ii,j+jj,ic,is))
+                         neighflag(ivec) = dble(datapiv.w(i+ii,j+jj,is))
+                         ivec = ivec+1
+                      end if
                    end do
                 end do
 
@@ -378,6 +444,10 @@ contains
                    call median_filter(datapiv.u(i,j,ic,is),neighbor,neighflag,nvec)
 
                 end select
+
+                !storing the flag :
+                !if flag = 0 a replacement has been done
+                datapiv.w(i,j,ic) = neighflag(1)
 
                 deallocate(neighbor)
                 deallocate(neighflag)
@@ -404,7 +474,7 @@ contains
     real(kind=8)                                       ::Um,rm,r0
     real(kind=8)        ,dimension(:) ,allocatable     ::tosort
     real(kind=8)        ,dimension(:) ,allocatable     ::resid
-    real(kind=8)                                       ::epsilon = 0.2
+    real(kind=8)                                       ::epsilon = 0.1
     real(kind=8)                                       ::threshold = 2.d0
 
     !loops
@@ -420,35 +490,31 @@ contains
        end if
     end do
 
+    if (nvalid < 5) return;
+
     allocate(tosort(Nvalid))
     iv = 1
-    do i=1,nvalid
+    do i=1,Nneigh
        if (flag(i) == 1.d0) then
           tosort(iv) = neighbor(i)
           iv = iv +1
        end if
     end do
 
+    !calculating median of Neighbors Um
     call QsortC(tosort)
     Um = tosort(nvalid/2)
 
-    allocate(resid(Nvalid))
-    iv = 1
-    do i=1,nvalid
-       if (flag(i) == 1.d0) then
-          resid(iv) = neighbor(i)-Um
-          iv = iv +1
-       end if
-    end do
-    tosort = resid
+    !calculating median of residuals rm
+    tosort =  abs(tosort - Um)
     call QsortC(tosort)
-    rm = tosort(nvalid/2)
+    rm = tosort(Nvalid/2)
 
     r0 = abs(input - Um)/(rm + epsilon)
 
     if (r0 > threshold) then
        input = Um
-       flag(1) = -1.d0
+       flag(1) = 0.d0
     end if
 
 
@@ -479,9 +545,11 @@ contains
        end if
     end do
 
+    if (nvalid < 5) return
+
     allocate(tosort(Nvalid))
     nvalid = 1
-    do i=1,nvalid
+    do i=1,Nneigh
        if (flag(i) == 1.d0) then
           tosort(nvalid) = neighbor(i)
           nvalid = nvalid + 1
