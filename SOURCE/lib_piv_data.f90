@@ -58,6 +58,7 @@ module lib_piv_data
      procedure :: cal_stats => piv_stats
      procedure :: get_fluctuations => piv_fluctuations
      procedure :: destroy   => piv_destroy
+     procedure :: print_info=> piv_info
 
   end type PIVdata
 
@@ -329,6 +330,33 @@ contains
     if (allocated(datapiv.cgen)) deallocate(datapiv.cgen)
 
   end subroutine piv_destroy
+
+  subroutine piv_info(datapiv)
+    class(PIVdata)                     ::datapiv
+    !-------------------------------------------
+
+    write(06,*)"File infos :"
+    if (datapiv.typeofgrid=="C") then
+       write(06,*)"Cartesian grid"
+       write(06,'(a,i3,a,i3,a,i3,a,i5)')"  - nx = ",datapiv.nx,", ny = ",datapiv.ny,&
+            ", ncompoments = ",datapiv.ncomponent,", nsamples = ", datapiv.nsamples
+    end if
+
+    if (datapiv.typeofgrid=="P") then
+       write(06,*)"Polar grid"
+       write(06,'(a,i3,a,i3,a,i3,a,i5)')"  - nr = ",datapiv.nr,", ntheta = ",datapiv.ntheta,&
+            ", ncompoments = ",datapiv.ncomponent,", nsamples = ", datapiv.nsamples
+    end if
+
+    write(06,*)" - Sampling frequency :",datapiv.fs
+    write(06,*)" - Comments :",trim(datapiv.comments)
+
+    if (datapiv.ncgen > 0) then
+       print*,"toto"
+       write(06,'(a,10(f10.3,2x))')"  - Stagnation Conditions :",(datapiv.cgen(i),i=1,datapiv.ncgen)
+    end if
+
+  end subroutine piv_info
 
 
 
