@@ -29,8 +29,8 @@ subroutine Partition(A, marker)
   real(kind=8), intent(in out), dimension(:) :: A
   integer, intent(out) :: marker
   integer :: i, j
-  real :: temp
-  real :: x      ! pivot point
+  real(kind=8) :: temp
+  real(kind=8) :: x      ! pivot point
   x = A(1)
   i= 0
   j= size(A) + 1

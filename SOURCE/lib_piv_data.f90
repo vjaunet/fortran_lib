@@ -314,8 +314,6 @@ contains
 
   end subroutine piv_io_write
 
-
-
   subroutine piv_destroy(datapiv)
     class(PIVdata)                     ::datapiv
     !-------------------------------------------
@@ -352,7 +350,6 @@ contains
     write(06,*)" - Comments :",trim(datapiv.comments)
 
     if (datapiv.ncgen > 0) then
-       print*,"toto"
        write(06,'(a,10(f10.3,2x))')"  - Stagnation Conditions :",(datapiv.cgen(i),i=1,datapiv.ncgen)
     end if
 
@@ -421,64 +418,69 @@ contains
           do j=1,ny
              do i=1,nx
 
-                !computing the Interrogation Area size
-                if (i <= w_def/2) then
-                   id = i-w_def/2 ; if = w_def/2
-                else if (i > nx-w_def/2) then
-                   id = -w_def/2 ; if = nx-i
-                else
-                   id = -w_def/2 ; if = w_def/2
-                end if
+                !Replacing only if necessary
+                if (datapiv.w(i,j,is) == 0.d0) then
 
-                if (j <= w_def/2) then
-                   jd = j-w_def/2 ; jf = w_def/2
-                else if (j > ny-w_def/2) then
-                   jd = -w_def/2 ; jf = ny - j
-                else
-                   jd = -w_def/2 ; jf = w_def/2
-                end if
+                   !computing the Interrogation Area size
+                   if (i <= w_def/2) then
+                      id = i-w_def/2 ; if = w_def/2
+                   else if (i > nx-w_def/2) then
+                      id = -w_def/2 ; if = nx-i
+                   else
+                      id = -w_def/2 ; if = w_def/2
+                   end if
 
-                !storing the Interrogation area
-                !excluding the center sample
-                nvec = (if-id+1)*(jf-jd+1)-1
-                allocate (neighbor(nvec))
-                allocate (neighflag(nvec))
-                ivec = 1
-                do ii=id,if
-                   do jj =jd,jf
-                      if (ii/=0 .and. jj/=0 ) then
-                         neighbor(ivec)  = dble(datapiv.u(i+ii,j+jj,ic,is))
-                         neighflag(ivec) = dble(datapiv.w(i+ii,j+jj,is))
-                         ivec = ivec+1
-                      end if
+                   if (j <= w_def/2) then
+                      jd = j-w_def/2 ; jf = w_def/2
+                   else if (j > ny-w_def/2) then
+                      jd = -w_def/2 ; jf = ny - j
+                   else
+                      jd = -w_def/2 ; jf = w_def/2
+                   end if
+
+                   !storing the Interrogation area
+                   !excluding the center sample
+                   nvec = (if-id+1)*(jf-jd+1)-1
+                   allocate (neighbor(nvec))
+                   allocate (neighflag(nvec))
+                   ivec = 1
+                   do ii=id,if
+                      do jj =jd,jf
+                         if (ii/=0 .or. jj/=0 ) then
+                            neighbor(ivec)  = dble(datapiv.u(i+ii,j+jj,ic,is))
+                            neighflag(ivec) = dble(datapiv.w(i+ii,j+jj,is))
+                            ivec = ivec+1
+                         end if
+                      end do
                    end do
-                end do
 
-                select case(method)
+                   select case(method)
 
-                case ("UOD")
+                   case ("UOD")
 
-                   !computing the UOD on the subsample
-                   call UOD_filter(datapiv.u(i,j,ic,is),neighbor,neighflag,nvec)
+                      !computing the UOD on the subsample
+                      call UOD_filter(datapiv.u(i,j,ic,is),neighbor,neighflag,nvec)
 
-                case("AVG")
+                   case("AVG")
 
-                   !computing the AVERAGE filter on the subsample
-                   call average_filter(datapiv.u(i,j,ic,is),neighbor,neighflag,nvec)
+                      !computing the AVERAGE filter on the subsample
+                      call average_filter(datapiv.u(i,j,ic,is),neighbor,neighflag,nvec)
 
-                case("MED")
+                   case("MED")
 
-                   !computing the MEDIAN filter on the subsample
-                   call median_filter(datapiv.u(i,j,ic,is),neighbor,neighflag,nvec)
+                      !computing the MEDIAN filter on the subsample
+                      call median_filter(datapiv.u(i,j,ic,is),neighbor,neighflag,nvec)
 
-                end select
+                   end select
 
-                !storing the flag :
-                !if flag = 0 a replacement has been done
-                datapiv.w(i,j,ic) = neighflag(1)
+                   !storing the flag :
+                   !if flag = 0 a replacement has been done
+                   datapiv.w(i,j,ic) = neighflag(1)
 
-                deallocate(neighbor)
-                deallocate(neighflag)
+                   deallocate(neighbor)
+                   deallocate(neighflag)
+
+                end if !end w=0
 
              end do
           end do
@@ -538,8 +540,8 @@ contains
     call QsortC(tosort)
     rm = tosort(Nvalid/2)
 
+    !replace sample if necessary
     r0 = abs(input - Um)/(rm + epsilon)
-
     if (r0 > threshold) then
        input = Um
        flag(1) = 0.d0
@@ -573,7 +575,7 @@ contains
        end if
     end do
 
-    if (nvalid < 5) return
+    if (nvalid < 3) return
 
     allocate(tosort(Nvalid))
     nvalid = 1
