@@ -183,12 +183,31 @@ contains
   end subroutine piv_stats
 
   subroutine piv_fluctuations(datapiv)
+    use lib_stat
     class(PIVdata)                     ::datapiv
     integer                            ::n1,n2
     !-----------------------------------------------
 
     if (.not.allocated(datapiv.stat.u_mean)) then
-       call piv_stats(datapiv)
+       if(datapiv.typeofgrid == 'C') then
+          n1 = datapiv.nx
+          n2 = datapiv.ny
+       else
+          n1 = datapiv.nr
+          n2 = datapiv.ntheta
+       end if
+
+       allocate(datapiv.stat.u_mean(n1,n2,datapiv.ncomponent))
+       do ic=1,datapiv.ncomponent
+          do j=1,n2
+             do i=1,n1
+
+                call average(datapiv.u(i,j,ic,:),&
+                     datapiv.stat.u_mean(i,j,ic))
+
+             end do
+          end do
+       end do
     end if
 
     do is=1,datapiv.nsamples

@@ -49,9 +49,10 @@ module lib_spectral
      real(kind=8)                   ::fmin=0.5d0   !min frequency to be computed (slotting)
      logical                        ::allocated_fft =.false.
      logical                        ::allocated_ifft=.false.
-     logical                        ::norm_fft=.false.
+     logical                        ::norm_fft=.true.
      logical                        ::rms_norm=.false.
      logical                        ::check_pval=.false.
+     logical                        ::detrend=.false.
      integer(kind=8)                ::plan=0
      integer(kind=8)                ::plan_ifft=0
   end type psd_param
@@ -393,7 +394,9 @@ contains
        end do
 
        ! !removing trend
-       ! call rmlintrend(xk,def_param.nfft)
+       if (def_param.detrend) then
+          call rmlintrend(xk,def_param.nfft)
+       end if
 
        !windowing
        xk(:) = xk(:) * window(:)
@@ -435,7 +438,7 @@ contains
        end do
        rms = rms + 0.5d0*abs(sp(def_param.nfft/2+1))*&
             def_param.fe/dble(def_param.nfft)
-       write(06,'(a,e15.3,2x,e15.3)')'Parseval rms**2, sum(psd*df) : ',sigrms**2,rms
+       write(06,'(a,e15.3,2x,e15.3)')'Parseval rms, sum(psd*df) : ',sigrms,sqrt(rms)
     end if
 
     !normalize output power

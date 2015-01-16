@@ -716,12 +716,12 @@ contains
     real*8 , dimension(:,:,:), allocatable            ::tabr8
     !-------------------------------------------------------------
 
-1664 format (<2*nc>(e15.8,2x))
-1665 format (a,a,a,i0,a,i0)
-
     ni=size(tab,1)
     nj=size(tab,2)
     nc=size(tab,3)
+
+1664 format (<2*nc>(e15.8,2x))
+1665 format (a,a,a,i0,a,i0)
 
     if (present(zonetitle)) then
        write(filespec.fid,1665)'Zone T="',trim(zonetitle),'", I=',ni,', J=',nj
@@ -837,7 +837,7 @@ contains
        else
           call write_ascii_3d(filespec,bufr4)
        end if
-       deallocate(bufr8)
+       deallocate(bufr4)
 
     type is (real*8)
        bufr8(:,:,:,nx+1:nx+nc) = tab(:,:,:,:)
@@ -866,13 +866,13 @@ contains
     real*8 , dimension(:,:,:,:), allocatable                 ::tabr8
     !----------------------------------------------------------------------
 
-1664 format (<2*nc>(e15.8,2x))
-1665 format (a,a,a,i0,a,i0,a,i0)
-
     ni=size(tab,1)
     nj=size(tab,2)
     nk=size(tab,3)
     nc=size(tab,4)
+
+1664 format (<2*nc>(e15.8,2x))
+1665 format (a,a,a,i0,a,i0,a,i0)
 
     if (present(zonetitle)) then
        write(filespec.fid,1665)'Zone T="',trim(zonetitle),&
