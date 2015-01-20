@@ -55,6 +55,7 @@ module lib_piv_data
      procedure :: write_bin => piv_io_write
      procedure :: set_x     => piv_set_x
      procedure :: replace_outlier => piv_replace_outlier
+     procedure :: detect_outlier => piv_detect_outlier
      procedure :: cal_stats => piv_stats
      procedure :: get_fluctuations => piv_fluctuations
      procedure :: destroy   => piv_destroy
@@ -73,11 +74,11 @@ contains
        !fill in x for cartesian coodinate systeme
        allocate(datapiv.x(datapiv.nx,&
             datapiv.ny,3))
-       do i=1,datapiv.nx
-          do j=1,datapiv.ny
-             datapiv.x(i,j,1) = real(i*datapiv.pixel_step) * datapiv.dx + datapiv.x0
-             datapiv.x(i,j,2) = real(j*datapiv.pixel_step) * datapiv.dy + datapiv.y0
-             datapiv.x(i,j,3) = datapiv.z_pos
+       do i=0,datapiv.nx
+          do j=0,datapiv.ny
+             datapiv.x(i+1,j+1,1) = real(i*datapiv.pixel_step) * datapiv.dx + datapiv.x0
+             datapiv.x(i+1,j+1,2) = real(j*datapiv.pixel_step) * datapiv.dy + datapiv.y0
+             datapiv.x(i+1,j+1,3) = datapiv.z_pos
           end do
        end do
 
@@ -381,6 +382,198 @@ contains
   !          PIV filter routines
   !
   !***********************************************************************
+  subroutine piv_detect_outlier(datapiv,method,wsize,nsigma)
+    use lib_pod
+    use lib_stat
+    class(PIVdata)                            ::datapiv
+    character(len=*)                          ::method
+    integer    ,optional                      ::wsize
+    real       ,optional                      ::Nsigma
+
+    real                                      ::um,utest
+    integer                                   ::ii,jj,i0
+    integer                                   ::nx,ny,ns,nc
+    real                                      ::nval
+    integer                                   ::w_def
+    real                                      ::Nsigma_def
+
+
+    integer(kind=8)                           ::id,if,jd,jf,ivec,nvec
+    real(kind=8) ,dimension(:) ,allocatable   ::neighbor,neighflag
+    !-------------------------------------------------------------
+
+    !check method is correct
+    if ( method /= "UOD" .and. &
+         method /= "AVG" .and. &
+         method /= "MED" .and. &
+         method /= "SIG") then
+
+       STOP 'detect_outlier : unknown method must be &
+            &"UOD", "AVG", "MED" or "SIG"'
+
+    end if
+
+    !put default interrogation area size
+    if (.not. PRESENT(wsize)) then
+       w_def = 3;
+    else
+       w_def = wsize
+    end if
+
+    !put default Nsigma parameter
+    if (.not. PRESENT(Nsigma)) then
+       Nsigma_def = 5.d0;
+    else
+       Nsigma_def = Nsigma
+    end if
+
+    ns = datapiv.nsamples
+    nc = datapiv.ncomponent
+    if (datapiv.typeofgrid == 'C') then
+       ny = datapiv.ny
+       nx = datapiv.nx
+    else if (datapiv.typeofgrid == 'P') then
+       ny = datapiv.nr
+       nx = datapiv.ntheta
+    end if
+
+    if (.not. allocated(datapiv.w)) then
+       allocate(datapiv.w(nx,ny,ns))
+       datapiv.w = 1.d0
+    end if
+
+
+    !--------------------------------------
+    ! Nsigma detection
+
+    if (method == "SIG") then
+
+       allocate(datapiv.stat.u_mean(nx,ny,datapiv.ncomponent))
+       allocate(datapiv.stat.u_rms(nx,ny,datapiv.ncomponent))
+
+
+       !computing stats for nsigma outlier detection
+       do ic=1,nc
+          do j=1,ny
+             do i=1,nx
+
+                call average(datapiv.u(i,j,ic,:),&
+                     datapiv.stat.u_mean(i,j,ic),&
+                     datapiv.w(i,j,:))
+
+                call rms    (datapiv.u(i,j,ic,:),&
+                     datapiv.stat.u_rms(i,j,ic),&
+                     datapiv.w(i,j,:))
+
+             end do
+          end do
+       end do
+
+       !loop through the samples
+       do is=1,ns
+          do ic=1,nc
+             do j=1,ny
+                do i=1,nx
+                   if (datapiv.w(i,j,is) /= 0.d0) then
+                      if (abs(datapiv.u(i,j,ic,is)-datapiv.stat.u_mean(i,j,ic))&
+                           .gt. Nsigma_def*datapiv.stat.u_rms(i,j,ic)) then
+                         datapiv.w(i,j,is) = 0.d0
+                      end if
+                   end if
+                end do
+             end do
+          end do
+       end do
+
+       deallocate(datapiv.stat.u_mean)
+       deallocate(datapiv.stat.u_rms)
+
+       return
+    end if
+
+    !------------------------------
+    ! spatial detection methods
+
+    !loop through all the samples
+    do is=1,ns
+       do ic=1,nc
+          do j=1,ny
+             do i=1,nx
+
+                !detecting only if necessary
+                if (datapiv.w(i,j,is) /= 0.d0) then
+
+                   !computing the Interrogation Area size
+                   if (i <= w_def/2) then
+                      id = i-w_def/2 ; if = w_def/2
+                   else if (i > nx-w_def/2) then
+                      id = -w_def/2 ; if = nx-i
+                   else
+                      id = -w_def/2 ; if = w_def/2
+                   end if
+
+                   if (j <= w_def/2) then
+                      jd = j-w_def/2 ; jf = w_def/2
+                   else if (j > ny-w_def/2) then
+                      jd = -w_def/2 ; jf = ny - j
+                   else
+                      jd = -w_def/2 ; jf = w_def/2
+                   end if
+
+                   !storing the Interrogation area
+                   !excluding the center sample
+                   utest = datapiv.u(i,j,ic,is)
+                   nvec = (if-id+1)*(jf-jd+1)-1
+                   allocate (neighbor(nvec))
+                   allocate (neighflag(nvec))
+                   ivec = 1
+                   do ii=id,if
+                      do jj =jd,jf
+                         if (ii/=0 .or. jj/=0 ) then
+                            neighbor(ivec)  = dble(datapiv.u(i+ii,j+jj,ic,is))
+                            neighflag(ivec) = dble(datapiv.w(i+ii,j+jj,is))
+                            ivec = ivec+1
+                         end if
+                      end do
+                   end do
+
+                   select case(method)
+
+                   case ("UOD")
+
+                      !computing the UOD on the subsample
+                      call UOD_filter(utest,neighbor,neighflag,nvec)
+
+                   case("AVG")
+
+                      !computing the AVERAGE filter on the subsample
+                      call average_filter(utest,neighbor,neighflag,nvec)
+
+                   case("MED")
+
+                      !computing the MEDIAN filter on the subsample
+                      call median_filter(utest,neighbor,neighflag,nvec)
+
+                   end select
+
+                   !storing the flag :
+                   !if flag = 0 a replacement has been done
+                   datapiv.w(i,j,ic) = neighflag(1)
+
+                   deallocate(neighbor)
+                   deallocate(neighflag)
+
+                end if !end w=0
+
+             end do
+          end do
+       end do
+    end do
+
+    return
+
+  end subroutine piv_detect_outlier
+
   subroutine piv_replace_outlier(datapiv,method,wsize)
     use lib_pod
     class(PIVdata)                            ::datapiv

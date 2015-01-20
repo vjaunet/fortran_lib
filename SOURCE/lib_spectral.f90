@@ -731,7 +731,7 @@ contains
        end do
        rms = rms + 0.5d0*abs(sp(def_param.nfft/2+1))*&
             def_param.fe/dble(def_param.nfft)
-       write(06,'(a,f15.3,2x,f15.3)')'Parseval rms**2/sum(psd*df) : ',&
+       write(06,'(a,e15.8,2x,e15.8)')'Parseval rms**2/sum(psd*df) : ',&
             xcor(def_param.nfft/2+1),rms
     end if
 
