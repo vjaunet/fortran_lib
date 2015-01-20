@@ -36,6 +36,8 @@ module lib_spectral
   !* xpsd(t1(:),s1(:),t2(:),s2(:),f(:),xsp(:),psd_param)   ,for 1d X-PSD slotting
   !* xcor(t1(:),s1(:),t2(:),s2(:),tau(:),xcor(:),psd_param) ,for 1d X-cor slotting
   !*
+  !* unwrap_phase(phi(:)) ,to unwrap the phase given by atan2(Re,Im)
+  !*
   !*==============================================================================
 
   integer(kind=8), private ::i,j,k,in,if,ic
@@ -57,9 +59,7 @@ module lib_spectral
      integer(kind=8)                ::plan_ifft=0
   end type psd_param
 
-  public  :: fft,ifft,&
-       psd,cor,&
-       xpsd,xcor
+  public  :: fft,ifft, psd,cor, xpsd,xcor,  unwrap_phase
 
   private :: d_fft_1d,d_fft_1d_f,&
        d_psd_1d, d_psd_1d_f, d_cor_1d,&
@@ -68,7 +68,8 @@ module lib_spectral
        d_cor_lda, d_psd_lda,&
        d_xcor_lda, d_xpsd_lda,&
        free_fft, rmlintrend,&
-       triangle, slottingFuzzy
+       triangle, slottingFuzzy,&
+       unwrap_phase_d,unwrap_phase_f
 
   interface fft
      module procedure d_fft_1d,d_fft_1d_f,d_fft_2d
@@ -93,6 +94,10 @@ module lib_spectral
   interface xcor
      module procedure d_xcor_1d, d_xcor_lda, d_xcor_2d
   end interface xcor
+
+  interface unwrap_phase
+     module procedure unwrap_phase_f, unwrap_phase_d
+  end interface unwrap_phase
 
 contains
 
@@ -610,7 +615,7 @@ contains
        end do
        rms = rms + 0.5d0*abs(sp(def_param.nfft/2+1))*&
             def_param.fe/dble(def_param.nfft)
-       write(06,'(a,e15.3,2x,e15.3)')'Parseval rms**2, sum(xpsd*df) : ', sigrms1*sigrms2,rms
+       write(06,'(a,e15.3,2x,e15.3)')'Parseval rms**2, sum(xpsd*df) : ', sqrt(sigrms1*sigrms2),rms
     end if
 
     !normalize output power
@@ -1479,6 +1484,56 @@ contains
 
   !----------------------------------------------------
   !*  END Remove linear trend
+  !----------------------------------------------------
+
+  !----------------------------------------------------
+  !*  Unwrapping phase
+  !----------------------------------------------------
+  subroutine unwrap_phase_d(phi)
+    real(kind=8) ,dimension(:)              ::phi
+    real(kind=8)                            ::phasejump,dphi
+    real ,parameter                         ::Pi = 4.d0*atan(1.d0)
+    integer                                 ::nn,i
+    !----------------------------------------------------
+
+    nn = size(phi,1)
+    phasejump = 0.d0
+    do i=2,nn
+       dphi = phi(i)-(phi(i-1)-phasejump)
+       if(abs(dphi).gt. Pi) then
+          phasejump=phasejump-sign(2.*Pi,dphi)
+       end if
+       phi(i)=phi(i)+phasejump
+    end do
+
+    return
+
+  end subroutine unwrap_phase_d
+
+  subroutine unwrap_phase_f(phi)
+    real(kind=4) ,dimension(:)              ::phi
+    real(kind=4)                            ::phasejump,dphi
+    real ,parameter                         ::Pi = 4.d0*atan(1.d0)
+    integer                                 ::nn,i
+    !----------------------------------------------------
+
+    nn = size(phi,1)
+    phasejump = 0.d0
+    do i=2,nn
+       dphi = phi(i)-(phi(i-1)-phasejump)
+       if(abs(dphi).gt. Pi) then
+          phasejump=phasejump-sign(2.*Pi,dphi)
+       end if
+       phi(i)=phi(i)+phasejump
+    end do
+
+    return
+
+  end subroutine unwrap_phase_f
+
+
+  !----------------------------------------------------
+  !*  END Unwrapping phase
   !----------------------------------------------------
 
 
