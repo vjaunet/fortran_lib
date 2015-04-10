@@ -29,10 +29,10 @@ module lib_piv_data
      character ::typeofgrid="C"
      integer   ::nx,ny,nsamples,ncomponent
      integer   ::ntheta,nr
-     real      ::dx=1,x0=0,dy=1,y0=0 !for scaling
-     real      ::dr=0,dtheta=0
+     real      ::dx=1.d0,x0=0.d0,dy=1.d0,y0=0.d0 !for scaling
+     real      ::dr=0.d0,dtheta=0.d0
      integer   ::pixel_step=1
-     real      ::z_pos=0
+     real      ::z_pos=0.d0
      integer   ::fs=1
 
      !comments
@@ -74,8 +74,8 @@ contains
        !fill in x for cartesian coodinate systeme
        allocate(datapiv.x(datapiv.nx,&
             datapiv.ny,3))
-       do i=0,datapiv.nx
-          do j=0,datapiv.ny
+       do i=0,datapiv.nx-1
+          do j=0,datapiv.ny-1
              datapiv.x(i+1,j+1,1) = real(i*datapiv.pixel_step) * datapiv.dx + datapiv.x0
              datapiv.x(i+1,j+1,2) = real(j*datapiv.pixel_step) * datapiv.dy + datapiv.y0
              datapiv.x(i+1,j+1,3) = datapiv.z_pos
