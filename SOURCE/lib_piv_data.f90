@@ -28,9 +28,7 @@ module lib_piv_data
      !data indices and scaling
      character ::typeofgrid="C"
      integer   ::nx,ny,nsamples,ncomponent
-     integer   ::ntheta,nr
      real      ::dx=1.d0,x0=0.d0,dy=1.d0,y0=0.d0 !for scaling
-     real      ::dr=0.d0,dtheta=0.d0
      integer   ::pixel_step=1
      real      ::z_pos=0.d0
      integer   ::fs=1
@@ -85,12 +83,12 @@ contains
     else if (datapiv.typeofgrid == "P") then
 
        !fill in x for polar coodinate systeme
-       allocate(datapiv.x(datapiv.nr,&
-            datapiv.ntheta,3))
-       do i=1,datapiv.nr
-          do j=1,datapiv.ntheta
-             datapiv.x(i,j,1) = (i-1) * datapiv.dr * cos((j-1)*datapiv.dtheta)
-             datapiv.x(i,j,2) = (i-1) * datapiv.dr * sin((j-1)*datapiv.dtheta)
+       allocate(datapiv.x(datapiv.nx,&
+            datapiv.ny,3))
+       do i=1,datapiv.nx
+          do j=1,datapiv.ny
+             datapiv.x(i,j,1) = (i-1) * datapiv.dx * cos((j-1)*datapiv.dy)
+             datapiv.x(i,j,2) = (i-1) * datapiv.dx * sin((j-1)*datapiv.dy)
              datapiv.x(i,j,3) = datapiv.z_pos
           end do
        end do
@@ -107,13 +105,8 @@ contains
     class(PIVdata)                     ::datapiv
     integer                            ::n1,n2
     !-----------------------------------------------
-    if(datapiv.typeofgrid == 'C') then
-       n1 = datapiv.nx
-       n2 = datapiv.ny
-    else
-       n1 = datapiv.nr
-       n2 = datapiv.ntheta
-    end if
+    n1 = datapiv.nx
+    n2 = datapiv.ny
 
     allocate(datapiv.stat.u_mean(n1,n2,datapiv.ncomponent))
     allocate(datapiv.stat.u_rms(n1,n2,datapiv.ncomponent))
@@ -190,13 +183,8 @@ contains
     !-----------------------------------------------
 
     if (.not.allocated(datapiv.stat.u_mean)) then
-       if(datapiv.typeofgrid == 'C') then
-          n1 = datapiv.nx
-          n2 = datapiv.ny
-       else
-          n1 = datapiv.nr
-          n2 = datapiv.ntheta
-       end if
+       n1 = datapiv.nx
+       n2 = datapiv.ny
 
        allocate(datapiv.stat.u_mean(n1,n2,datapiv.ncomponent))
        do ic=1,datapiv.ncomponent
@@ -234,29 +222,14 @@ contains
 
        read(110)datapiv.typeofgrid
 
-       if (datapiv.typeofgrid == "P") then
-          read(110)datapiv.nr, datapiv.ntheta,&
-               datapiv.ncomponent,datapiv.nsamples,&
-               datapiv.dr, datapiv.dtheta,&
-               datapiv.fs
+       if (datapiv.typeofgrid == "C" .or. datapiv.typeofgrid == "P") then
 
-          n1 = datapiv.nr
-          n2 = datapiv.ntheta
-
-          !read data containers
-          allocate(datapiv.u(datapiv.nr,&
-               datapiv.ntheta,&
-               datapiv.ncomponent,datapiv.nsamples))
-          read(110)datapiv.u
-
-       else if (datapiv.typeofgrid == "C") then
           !read datapiv info header
           read(110)datapiv.nx, datapiv.ny,&
                datapiv.ncomponent,datapiv.nsamples,&
                datapiv.dx, datapiv.dy,&
                datapiv.x0, datapiv.y0,&
                datapiv.pixel_step,datapiv.fs
-
 
           n1 = datapiv.nx
           n2 = datapiv.ny
@@ -301,22 +274,11 @@ contains
     write(110)datapiv.typeofgrid
 
     !write datapiv info header
-    if (datapiv.typeofgrid == "P") then
-       write(110)datapiv.nr, datapiv.ntheta,&
-            datapiv.ncomponent,datapiv.nsamples,&
-            datapiv.dr, datapiv.dtheta,&
-            datapiv.fs
-
-    else if (datapiv.typeofgrid == "C") then
-       write(110)datapiv.nx, datapiv.ny,&
-            datapiv.ncomponent,datapiv.nsamples,&
-            datapiv.dx, datapiv.dy,&
-            datapiv.x0, datapiv.y0,&
-            datapiv.pixel_step,datapiv.fs
-    else
-       write(06,*)"piv_io_write : impossible to define the type of grid"
-       STOP
-    end if
+    write(110)datapiv.nx, datapiv.ny,&
+         datapiv.ncomponent,datapiv.nsamples,&
+         datapiv.dx, datapiv.dy,&
+         datapiv.x0, datapiv.y0,&
+         datapiv.pixel_step,datapiv.fs
 
     !write statgnation conditions if some
     write(110)datapiv.ncgen
@@ -327,7 +289,7 @@ contains
     !write comments
     write(110)datapiv.comments
 
-
+    !write data
     write(110)datapiv.u
 
     close(110)
@@ -358,12 +320,18 @@ contains
        write(06,*)"Cartesian grid"
        write(06,'(a,i3,a,i3,a,i3,a,i5)')"  - nx = ",datapiv.nx,", ny = ",datapiv.ny,&
             ", ncompoments = ",datapiv.ncomponent,", nsamples = ", datapiv.nsamples
+       write(06,'(a,i3,a,i3,a,i3,a,i5)')"  - x0 = ",datapiv.x0,", y0 = ",datapiv.y0,&
+            ", dx = ",datapiv.dx,", dy = ", datapiv.dy
+
     end if
 
     if (datapiv.typeofgrid=="P") then
        write(06,*)"Polar grid"
-       write(06,'(a,i3,a,i3,a,i3,a,i5)')"  - nr = ",datapiv.nr,", ntheta = ",datapiv.ntheta,&
+       write(06,'(a,i3,a,i3,a,i3,a,i5)')"  - nr = ",datapiv.nx,", ntheta = ",datapiv.ny,&
             ", ncompoments = ",datapiv.ncomponent,", nsamples = ", datapiv.nsamples
+       write(06,'(a,i3,a,i3,a,i3,a,i5)')"  - r0 = ",datapiv.x0,", thetha0 = ",datapiv.y0,&
+            ", dr = ",datapiv.dx,", dtheta = ", datapiv.dy
+
     end if
 
     write(06,*)" - Sampling frequency :",datapiv.fs
@@ -429,13 +397,8 @@ contains
 
     ns = datapiv.nsamples
     nc = datapiv.ncomponent
-    if (datapiv.typeofgrid == 'C') then
-       ny = datapiv.ny
-       nx = datapiv.nx
-    else if (datapiv.typeofgrid == 'P') then
-       ny = datapiv.nr
-       nx = datapiv.ntheta
-    end if
+    ny = datapiv.ny
+    nx = datapiv.nx
 
     if (.not. allocated(datapiv.w)) then
        allocate(datapiv.w(nx,ny,ns))
@@ -616,13 +579,8 @@ contains
 
     ns = datapiv.nsamples
     nc = datapiv.ncomponent
-    if (datapiv.typeofgrid == 'C') then
-       ny = datapiv.ny
-       nx = datapiv.nx
-    else if (datapiv.typeofgrid == 'P') then
-       ny = datapiv.nr
-       nx = datapiv.ntheta
-    end if
+    ny = datapiv.ny
+    nx = datapiv.nx
 
     !loop through all the samples
     do is=1,ns

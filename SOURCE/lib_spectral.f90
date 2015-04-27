@@ -1081,8 +1081,11 @@ contains
 
     !	Normalisation
     do p=1,nfft,1
-       cu(p)=cu(p)/sqrt(nu1(p)*nu2(p))
+       if (nu1(p) /= 0.d0 .and. nu2(p)/=0.d0) then
+          cu(p)=cu(p)/sqrt(nu1(p)*nu2(p))
+       end if
     enddo
+
 
     RETURN
   END SUBROUTINE slottingFuzzy
