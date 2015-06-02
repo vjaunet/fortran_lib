@@ -31,7 +31,7 @@ module lib_piv_data
      real      ::dx=1.d0,x0=0.d0,dy=1.d0,y0=0.d0 !for scaling
      integer   ::pixel_step=1
      real      ::z_pos=0.d0
-     integer   ::fs=1
+     real      ::fs=1
 
      !comments
      character(len=500)  ::comments = ""
@@ -57,6 +57,7 @@ module lib_piv_data
      procedure :: cal_stats => piv_stats
      procedure :: get_fluctuations => piv_fluctuations
      procedure :: destroy   => piv_destroy
+     procedure :: create    => piv_create
      procedure :: print_info=> piv_info
 
   end type PIVdata
@@ -229,7 +230,8 @@ contains
                datapiv.ncomponent,datapiv.nsamples,&
                datapiv.dx, datapiv.dy,&
                datapiv.x0, datapiv.y0,&
-               datapiv.pixel_step,datapiv.fs
+               datapiv.pixel_step,datapiv.fs,&
+               datapiv.z_pos
 
           n1 = datapiv.nx
           n2 = datapiv.ny
@@ -278,7 +280,8 @@ contains
          datapiv.ncomponent,datapiv.nsamples,&
          datapiv.dx, datapiv.dy,&
          datapiv.x0, datapiv.y0,&
-         datapiv.pixel_step,datapiv.fs
+         datapiv.pixel_step,datapiv.fs,&
+         datapiv.z_pos
 
     !write statgnation conditions if some
     write(110)datapiv.ncgen
@@ -311,6 +314,21 @@ contains
 
   end subroutine piv_destroy
 
+  subroutine piv_create(datapiv)
+    class(PIVdata)                     ::datapiv
+    !-------------------------------------------
+
+    if (.not. allocated(datapiv.u)) then
+       if (datapiv.nx /= 0 .and. datapiv.ny /= 0 .and. datapiv.ncomponent .and. datapiv.nsamples /=0) then
+          allocate(datapiv.u(datapiv.nx,datapiv.ny,datapiv.ncomponent,datapiv.nsamples))
+       else
+          STOP "datapiv : can't allocate memory, a table size equals 0"
+       end if
+    end if
+    if (.not. allocated(datapiv.cgen)) allocate(datapiv.cgen(datapiv.ncgen))
+
+  end subroutine piv_create
+
   subroutine piv_info(datapiv)
     class(PIVdata)                     ::datapiv
     !-------------------------------------------
@@ -320,7 +338,7 @@ contains
        write(06,*)"Cartesian grid"
        write(06,'(a,i3,a,i3,a,i3,a,i5)')"  - nx = ",datapiv.nx,", ny = ",datapiv.ny,&
             ", ncompoments = ",datapiv.ncomponent,", nsamples = ", datapiv.nsamples
-       write(06,'(a,i3,a,i3,a,i3,a,i5)')"  - x0 = ",datapiv.x0,", y0 = ",datapiv.y0,&
+       write(06,'(a,f6.2,a,f6.2,a,f6.2,a,f6.2)')"  - x0 = ",datapiv.x0,", y0 = ",datapiv.y0,&
             ", dx = ",datapiv.dx,", dy = ", datapiv.dy
 
     end if
@@ -329,12 +347,13 @@ contains
        write(06,*)"Polar grid"
        write(06,'(a,i3,a,i3,a,i3,a,i5)')"  - nr = ",datapiv.nx,", ntheta = ",datapiv.ny,&
             ", ncompoments = ",datapiv.ncomponent,", nsamples = ", datapiv.nsamples
-       write(06,'(a,i3,a,i3,a,i3,a,i5)')"  - r0 = ",datapiv.x0,", thetha0 = ",datapiv.y0,&
+       write(06,'(a,f6.2,a,f6.2,a,f6.2,a,f6.2)')"  - r0 = ",datapiv.x0,", thetha0 = ",datapiv.y0,&
             ", dr = ",datapiv.dx,", dtheta = ", datapiv.dy
 
     end if
 
     write(06,*)" - Sampling frequency :",datapiv.fs
+    write(06,*)" - z position :",datapiv.z_pos
     write(06,*)" - Comments :",trim(datapiv.comments)
 
     if (datapiv.ncgen > 0) then

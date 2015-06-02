@@ -722,11 +722,12 @@ contains
 
 1664 format (<2*nc>(e15.8,2x))
 1665 format (a,a,a,i0,a,i0)
+1666 format (a,a,i0,a,i0)
 
     if (present(zonetitle)) then
        write(filespec.fid,1665)'Zone T="',trim(zonetitle),'", I=',ni,', J=',nj
     else
-       write(filespec.fid,1665)'Zone T="',&
+       write(filespec.fid,1666)'Zone T="',&
             '", I=',ni,', J=',nj
     end if
 

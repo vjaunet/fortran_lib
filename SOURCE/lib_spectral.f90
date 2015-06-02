@@ -61,7 +61,8 @@ module lib_spectral
 
   public  :: fft,ifft, psd,cor, xpsd,xcor,  unwrap_phase
 
-  private :: d_fft_1d,d_fft_1d_f,&
+  private :: c_fft_1d,d_fft_1d,d_fft_1d_f,&
+       c_psd_1d, c_psd_1d_f,&
        d_psd_1d, d_psd_1d_f, d_cor_1d,&
        d_xpsd_1d, d_xcor_1d,&
        d_xpsd_1d_f,&
@@ -80,7 +81,7 @@ module lib_spectral
   end interface ifft
 
   interface psd
-     module procedure d_psd_1d, d_psd_1d_f, d_psd_lda
+     module procedure c_psd_1d, c_psd_1d_f, d_psd_1d, d_psd_1d_f, d_psd_lda
   end interface psd
 
   interface cor
@@ -133,6 +134,48 @@ contains
   !----------------------------------------------------
   !*    Fourier Transform
   !----------------------------------------------------
+
+  subroutine c_fft_1d(s, sp, param)
+    complex(kind=8)  ,dimension(:)              ::s
+    complex(kind=8)  ,dimension(:)              ::sp
+    type(psd_param) ,optional                   ::param
+
+    type(psd_param)                             ::def_param
+    integer(kind=8)                             ::plan
+    !----------------------------------------------------
+
+    if (size(sp,1) /= size(s)) then
+       STOP 'FFT : size(sp) must be size(s).'
+    end if
+
+    if (present(param)) then
+       def_param = param
+    end if
+
+    if (.not.def_param.allocated_fft) then
+       !allocate fftw
+       call dfftw_plan_dft_1d(def_param.plan,&
+            def_param.nfft,s,sp,FFTW_FORWARD,FFTW_ESTIMATE)
+       !set allocated to true for next call
+       def_param.allocated_fft = .true.
+    end if
+
+    !compute fftw
+    call dfftw_execute(def_param.plan,s,sp)
+
+    !normalization
+    if (def_param.norm_fft) then
+       sp = sp/def_param.nfft
+    end if
+
+    !return parameter values for next call
+    if (present(param)) then
+       param = def_param
+    end if
+
+    return
+
+  end subroutine c_fft_1d
 
   subroutine d_fft_1d(s, sp, param)
     real(kind=8)     ,dimension(:)              ::s
@@ -343,6 +386,135 @@ contains
   !*    Power spectral density
   !----------------------------------------------------
 
+  subroutine c_psd_1d (s,sp,param)
+    complex(kind=8)     ,dimension(:)           ::s
+    complex(kind=8)  ,dimension(:)              ::sp
+    type(psd_param) ,optional                   ::param
+
+    complex(kind=8),dimension(:) ,allocatable   ::xk
+    real(kind=8)   ,dimension(:) ,allocatable   ::window
+    complex(kind=8),dimension(:) ,allocatable   ::sk
+    integer(kind=8)                             ::plan
+    integer(kind=8)                             ::nf
+    type(psd_param)                             ::def_param
+
+    complex(kind=8)  ,dimension(:),allocatable  ::sp_tmp
+
+    complex(kind=8)                             ::moy,rms,sigmoy,sigrms
+    real(kind=8)                                ::powfen2
+
+    integer(kind=8)                             ::is_deb,is_fin
+    integer(kind=8)                             ::nn
+    !---------------------------------------------------
+
+    nn = size(s,1)
+
+    if (present(param)) then
+       def_param = param
+    end if
+
+    if (size(sp) .ne. def_param.nfft) then
+       write(06,*) 'sp size invalid : sp(1:nfft)'
+       stop
+    end if
+
+    !remove mean and compute input rms
+    sigmoy = sum(s(:))/dble(nn)
+    sigrms = sqrt(sum((s(:)-sigmoy)**2)/dble(nn))
+    !remove the mean (DC)
+    s(:)  = s(:) - sigmoy
+
+    !initialization
+    allocate(window(def_param.nfft))
+    call get_window(def_param,window,powfen2)
+
+    allocate(xk(def_param.nfft))
+    allocate(sk(def_param.nfft))
+    sp = 0.d0
+    sk = 0.d0
+    ic = 0
+    is_deb = 1
+    is_fin = def_param.nfft
+
+    !start the psd processing
+    do while(is_fin.le.nn)
+       !Loop on the diffrent input signals,
+       !simultneously acquired
+       do i=is_deb,is_fin
+          xk(i-ic*def_param.overlap) = s(i)
+       end do
+
+       ! ?? Check wether it makes sens in Complex plane ?
+       ! !removing trend
+       ! if (def_param.detrend) then
+       !    call rmlintrend(xk,def_param.nfft)
+       ! end if
+
+       !windowing
+       xk(:) = cmplx(real(xk(:) * window(:)),&
+            aimag(xk)*window(:))
+
+       !fft
+       call c_fft_1d(xk,sk,def_param)
+
+       sp(:) = sp(:) + sk(:)*dconjg(sk)
+
+       !Get new block
+       is_deb = is_deb+def_param.overlap
+       is_fin = is_fin+def_param.overlap
+       ic     = ic + 1
+    end do
+
+    !free fftw3
+    call free_fft(def_param)
+
+    deallocate(xk,sk,window)
+
+    !account of window energy
+    !and one sided spectrum
+    sp = 2.d0*sp/powfen2
+
+    !Averaging the blocks
+    sp = sp/dble(ic)
+
+    !energy per hertz
+    sp = sp/def_param.fe*dble(def_param.nfft)
+
+    !check the parseval theorem if wanted
+    if (def_param.check_pval == .true.) then
+       rms = 0.d0
+       rms = rms + 0.5d0*abs(sp(1))*&
+            def_param.fe/dble(def_param.nfft)
+       do if=2,def_param.nfft-1
+          rms = rms + 1.d0*abs(sp(if))*&
+               def_param.fe/dble(def_param.nfft)
+       end do
+       rms = rms + 0.5d0*abs(sp(def_param.nfft))*&
+            def_param.fe/dble(def_param.nfft)
+       write(06,'(a,e15.3,2x,e15.3)')'Parseval rms, sum(psd*df) : ',sigrms,sqrt(rms)
+    end if
+
+    !normalize output power
+    if (def_param.rms_norm .and. sigrms /= 0.d0) then
+       sp = sp/(sigrms**2)
+    end if
+
+
+    !fliping the spectrum
+    allocate(sp_tmp(size(sp,1)/2))
+    sp_tmp(:) =  sp(1:def_param.nfft/2)
+    sp(1:def_param.nfft/2) = sp(def_param.nfft/2+1:def_param.nfft)
+    sp(def_param.nfft/2+1:def_param.nfft) = sp_tmp(:)
+    deallocate(sp_tmp)
+
+
+    !Recovering original signal
+    s = s + sigmoy
+
+    return
+
+  end subroutine c_psd_1d
+
   subroutine d_psd_1d (s,sp,param)
     real(kind=8)     ,dimension(:)              ::s
     complex(kind=8)  ,dimension(:)              ::sp
@@ -457,6 +629,32 @@ contains
     return
 
   end subroutine d_psd_1d
+
+  subroutine c_psd_1d_f (s,f,sp,param)
+    complex(kind=8)  ,dimension(:)              ::s
+    complex(kind=8)  ,dimension(:)              ::sp
+    type(psd_param)  ,optional                  ::param
+    real(kind=8)     ,dimension(:)              ::f
+
+    type(psd_param)                             ::def_param
+    !---------------------------------------------------
+
+    if (present(param)) then
+       def_param = param
+    end if
+
+    !call psd
+    call c_psd_1d(s,sp,def_param)
+
+    !fill in f
+    do if=1,def_param.nfft
+       f(if) = def_param.fe*&
+            dble(if-def_param.nfft/2-1)/dble(def_param.nfft)
+    end do
+
+    return
+
+  end subroutine c_psd_1d_f
 
   subroutine d_psd_1d_f (s,f,sp,param)
     real(kind=8)     ,dimension(:)              ::s
