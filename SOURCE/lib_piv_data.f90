@@ -55,6 +55,8 @@ module lib_piv_data
      procedure :: replace_outlier => piv_replace_outlier
      procedure :: detect_outlier => piv_detect_outlier
      procedure :: cal_stats => piv_stats
+     procedure :: cal_avg => piv_average
+     procedure :: cal_rms => piv_rms
      procedure :: get_fluctuations => piv_fluctuations
      procedure :: destroy   => piv_destroy
      procedure :: create    => piv_create
@@ -101,13 +103,21 @@ contains
 
   end subroutine piv_set_x
 
-  subroutine piv_stats(datapiv)
+  subroutine piv_stats(datapiv,Nstats)
     use lib_stat
     class(PIVdata)                     ::datapiv
+    integer          ,optional         ::Nstats
     integer                            ::n1,n2
+    integer                            ::Nmax
     !-----------------------------------------------
     n1 = datapiv.nx
     n2 = datapiv.ny
+
+    if (PRESENT(Nstats)) then
+       NMax = Nstats
+    else
+       Nmax = datapiv.nsamples
+    end if
 
     allocate(datapiv.stat.u_mean(n1,n2,datapiv.ncomponent))
     allocate(datapiv.stat.u_rms(n1,n2,datapiv.ncomponent))
@@ -123,21 +133,21 @@ contains
        do j=1,n2
           do i=1,n1
 
-             call average(datapiv.u(i,j,ic,:),&
+             call average(datapiv.u(i,j,ic,1:Nmax),&
                   datapiv.stat.u_mean(i,j,ic),&
-                  datapiv.w(i,j,:))
+                  datapiv.w(i,j,1:Nmax))
 
-             call rms    (datapiv.u(i,j,ic,:),&
+             call rms    (datapiv.u(i,j,ic,1:Nmax),&
                   datapiv.stat.u_rms(i,j,ic),&
-                  datapiv.w(i,j,:))
+                  datapiv.w(i,j,1:Nmax))
 
-             call skewness (datapiv.u(i,j,ic,:),&
+             call skewness (datapiv.u(i,j,ic,1:Nmax),&
                   datapiv.stat.u_skew(i,j,ic),&
-                  datapiv.w(i,j,:))
+                  datapiv.w(i,j,1:Nmax))
 
-             call flatness (datapiv.u(i,j,ic,:),&
+             call flatness (datapiv.u(i,j,ic,1:Nmax),&
                   datapiv.stat.u_flat(i,j,ic),&
-                  datapiv.w(i,j,:))
+                  datapiv.w(i,j,1:Nmax))
 
           end do
        end do
@@ -147,35 +157,112 @@ contains
        allocate(datapiv.stat.xmoments(n1,n2,1))
        do j=1,n2
           do i=1,n1
-             call xmoment(datapiv.u(i,j,1,:),&
-                  datapiv.u(i,j,2,:),&
+             call xmoment(datapiv.u(i,j,1,1:Nmax),&
+                  datapiv.u(i,j,2,1:Nmax),&
                   datapiv.stat.xmoments(i,j,1),&
-                  datapiv.w(i,j,:))
+                  datapiv.w(i,j,1:Nmax))
           end do
        end do
     else if (datapiv.ncomponent == 3) then
        allocate(datapiv.stat.xmoments(n1,n2,3))
        do j=1,n2
           do i=1,n1
-             call xmoment(datapiv.u(i,j,1,:),&
+             call xmoment(datapiv.u(i,j,1,1:Nmax),&
                   datapiv.u(i,j,2,:),&
                   datapiv.stat.xmoments(i,j,1),&
-                  datapiv.w(i,j,:))
+                  datapiv.w(i,j,1:Nmax))
 
-             call xmoment(datapiv.u(i,j,1,:),&
+             call xmoment(datapiv.u(i,j,1,1:Nmax),&
                   datapiv.u(i,j,3,:),&
                   datapiv.stat.xmoments(i,j,2),&
-                  datapiv.w(i,j,:))
+                  datapiv.w(i,j,1:Nmax))
 
-             call xmoment(datapiv.u(i,j,2,:),&
+             call xmoment(datapiv.u(i,j,2,1:Nmax),&
                   datapiv.u(i,j,3,:),&
                   datapiv.stat.xmoments(i,j,3),&
-                  datapiv.w(i,j,:))
+                  datapiv.w(i,j,1:Nmax))
           end do
        end do
     end if
 
   end subroutine piv_stats
+
+  subroutine piv_average(datapiv,Nmax)
+    use lib_stat
+    class(PIVdata)                     ::datapiv
+    integer                            ::n1,n2,nn
+    integer         ,optional          ::Nmax
+    !-----------------------------------------------
+
+    if (present(Nmax)) then
+       nn = Nmax
+    else
+       nn = datapiv.nsamples
+    end if
+
+    if (.not. allocated(datapiv.w)) then
+       allocate(datapiv.w(n1,n2,datapiv.nsamples))
+       datapiv.w = 1.d0
+    end if
+
+    if (.not.allocated(datapiv.stat.u_mean)) then
+       n1 = datapiv.nx
+       n2 = datapiv.ny
+
+       allocate(datapiv.stat.u_mean(n1,n2,datapiv.ncomponent))
+
+       do ic=1,datapiv.ncomponent
+          do j=1,n2
+             do i=1,n1
+
+                call average(datapiv.u(i,j,ic,1:nn),&
+                     datapiv.stat.u_mean(i,j,ic),&
+                     datapiv.w(i,j,1:nn))
+
+             end do
+          end do
+       end do
+    end if
+
+  end subroutine piv_average
+
+  subroutine piv_rms(datapiv,Nmax)
+    use lib_stat
+    class(PIVdata)                     ::datapiv
+    integer                            ::n1,n2,nn
+    integer         ,optional          ::Nmax
+    !-----------------------------------------------
+
+    if (present(Nmax)) then
+       nn = Nmax
+    else
+       nn = datapiv.nsamples
+    end if
+
+    if (.not. allocated(datapiv.w)) then
+       allocate(datapiv.w(n1,n2,datapiv.nsamples))
+       datapiv.w = 1.d0
+    end if
+
+    if (.not.allocated(datapiv.stat.u_rms)) then
+       n1 = datapiv.nx
+       n2 = datapiv.ny
+
+       allocate(datapiv.stat.u_rms(n1,n2,datapiv.ncomponent))
+       do ic=1,datapiv.ncomponent
+          do j=1,n2
+             do i=1,n1
+
+                call rms    (datapiv.u(i,j,ic,1:nn),&
+                     datapiv.stat.u_rms(i,j,ic),&
+                     datapiv.w(i,j,1:nn))
+
+             end do
+          end do
+       end do
+    end if
+
+  end subroutine piv_rms
 
   subroutine piv_fluctuations(datapiv)
     use lib_stat
@@ -184,20 +271,7 @@ contains
     !-----------------------------------------------
 
     if (.not.allocated(datapiv.stat.u_mean)) then
-       n1 = datapiv.nx
-       n2 = datapiv.ny
-
-       allocate(datapiv.stat.u_mean(n1,n2,datapiv.ncomponent))
-       do ic=1,datapiv.ncomponent
-          do j=1,n2
-             do i=1,n1
-
-                call average(datapiv.u(i,j,ic,:),&
-                     datapiv.stat.u_mean(i,j,ic))
-
-             end do
-          end do
-       end do
+       call datapiv.cal_avg()
     end if
 
     do is=1,datapiv.nsamples
@@ -205,6 +279,16 @@ contains
     end do
 
   end subroutine piv_fluctuations
+
+
+
+  !*****************************************************************
+  !
+  !      INPUT - OUTPUTS
+  !
+  !
+  !*****************************************************************
+
 
   subroutine piv_io_read(datapiv,filename)
     class(PIVdata)                     ::datapiv
