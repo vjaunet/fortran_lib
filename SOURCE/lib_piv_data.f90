@@ -194,11 +194,15 @@ contains
     integer         ,optional          ::Nmax
     !-----------------------------------------------
 
+
     if (present(Nmax)) then
        nn = Nmax
     else
        nn = datapiv.nsamples
     end if
+
+    n1 = datapiv.nx
+    n2 = datapiv.ny
 
     if (.not. allocated(datapiv.w)) then
        allocate(datapiv.w(n1,n2,datapiv.nsamples))
@@ -206,25 +210,22 @@ contains
     end if
 
     if (.not.allocated(datapiv.stat.u_mean)) then
-       n1 = datapiv.nx
-       n2 = datapiv.ny
-
        allocate(datapiv.stat.u_mean(n1,n2,datapiv.ncomponent))
-
-       do ic=1,datapiv.ncomponent
-          do j=1,n2
-             do i=1,n1
-
-                call average(datapiv.u(i,j,ic,1:nn),&
-                     datapiv.stat.u_mean(i,j,ic),&
-                     datapiv.w(i,j,1:nn))
-
-             end do
-          end do
-       end do
     end if
 
-  end subroutine piv_average
+    do ic=1,datapiv.ncomponent
+       do j=1,n2
+          do i=1,n1
+
+             call average(datapiv.u(i,j,ic,1:nn),&
+                  datapiv.stat.u_mean(i,j,ic),&
+                  datapiv.w(i,j,1:nn))
+
+          end do
+       end do
+    end do
+
+end subroutine piv_average
 
   subroutine piv_rms(datapiv,Nmax)
     use lib_stat
@@ -623,8 +624,11 @@ contains
                    end select
 
                    !storing the flag :
-                   !if flag = 0 a replacement has been done
+                   !if flag = 0 an outlier has been detected
                    datapiv.w(i,j,ic) = neighflag(1)
+                   if (datapiv.w(i,j,ic) /= 1.d0) then
+                      datapiv.u(i,j,ic,is) = -1000.d0
+                   end if
 
                    deallocate(neighbor)
                    deallocate(neighflag)
@@ -793,7 +797,7 @@ contains
        end if
     end do
 
-    if (nvalid < 5) return;
+    if (nvalid < 3) return;
 
     allocate(tosort(Nvalid))
     iv = 1
@@ -897,18 +901,18 @@ contains
     do i=1,Nneigh
        mean = mean + neighbor(i)*flag(i)
     end do
-    mean = mean/sum(flag(:))
+    mean = mean/sumf
 
     rms = 0.d0
     do i=1,Nneigh
        rms = rms + (((neighbor(i)-mean)**2)*flag(i))
     end do
-    rms = sqrt(rms/sum(flag(:)))
+    rms = sqrt(rms/sumf)
 
-    if (abs(input-mean) > 2.d0*rms) then
-       input = mean
-       flag(1) = 0.d0
-    end if
+    !if (abs(input-mean) > 2.d0*rms) then
+    input = mean
+    flag(1) = 0.d0
+    !end if
 
   END SUBROUTINE average_filter
 

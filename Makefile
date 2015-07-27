@@ -22,7 +22,7 @@ LIBS= -lfftw3 -llapack -lstat -lpod $(LPATH)
 CC = ifort -O2 $(IPATH)
 CC += $(OPT_para)
 CC += $(OPT_OMP)
-#CC += $(Debug)
+CC += $(Debug)
 
 ALL:$(OBJ)
 
