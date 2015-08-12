@@ -11,16 +11,237 @@ module lib_pod
   !
   !===========================================================
 
-  integer, private :: i,j,ic,is
+  integer, private :: i,j,ic,jc,is,imod
+
+  type PODdata
+     real(kind=4),   dimension(:)        ,allocatable  ::lambda
+     real(kind=4),   dimension(:,:,:,:)  ,allocatable  ::phi
+     real(kind=4),   dimension(:,:)      ,allocatable  ::alpha
+     real(kind=4),   dimension(:,:,:,:)  ,allocatable  ::upod
+
+   contains
+     procedure :: calpod => f_makepod
+     procedure :: recons => f_recons
+  end type PODdata
 
   private :: f_gappypod
-
   interface gappypod
      module procedure :: f_gappypod
-  end interface gappypod
-
+  end interface
 
 contains
+
+  !#####################################################################################
+  !#
+  !#          Temporal POD analysis : Snapshot POD (Sirovich,'87)
+  !#
+  !#####################################################################################
+
+  subroutine f_makepod(datapod,u)
+
+    !$$
+    !$$ This subroutine does POD Decompostion
+    !$$
+    !$$ JAUNET Vincent, 10/08/2015
+    !$$
+    !$$
+    !$$ ref : - An application of Gappy POD - Exp_ Fluids (2007) 42:79-91
+    !$$       - The Karhunene-loeve procedure for gappy data J. Opt. Soc. Am A 12(8):1657-1664
+    !$$       - Sirovich 1987
+    !$$ needs : LAPACK library
+    !$$
+
+    implicit none
+    !------------------------------------
+    !declarations
+    !____________________________________
+    class(PODdata)                                           ::datapod
+
+    !input variables
+    real(kind=4)         ,dimension(:,:,:,:)                  ::u
+
+    !calculation variables
+    !''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    integer(kind=4)                                           ::iVmx,jvmx,nc
+    integer(kind=4)                                           ::nsetv
+    integer(kind=4)                                           ::nmodv
+
+    integer(kind=4)                                           ::k,l
+    integer(kind=4)                                           ::iimg,imod
+    real(kind=4)                                              ::err,err1,err2
+    integer(kind=4)                                           ::cpt,cpt1
+
+    real(kind=4),   dimension(:,:),   allocatable             ::cormat
+    integer(kind=4)                                           ::nwork
+    integer(kind=4)                                           ::ifail
+    real(kind=4),   dimension(:),     allocatable             ::work
+    real(kind=4),   dimension(:,:),   allocatable             ::cormat_old
+    real(kind=4),   dimension(:),     allocatable             ::lambda_old
+
+    real(kind=4)                                              ::t1,t2
+    !-----------------------------------------------------------------------------------
+
+    ivmx = size(u(:,1,1,1))
+    jvmx = size(u(1,:,1,1))
+    nc   = size(u(1,1,:,1))
+    nsetv = size(u(1,1,1,:))
+    nmodv = nsetv
+
+    !allocation of the arrays
+    allocate(datapod.phi(ivmx,jvmx,nc,nsetv))
+    allocate(datapod.alpha(nsetv,nsetv))
+    allocate(datapod.lambda(nsetv))
+    allocate(cormat(nsetv,nsetv))
+
+    !initialization of some variables
+    nwork       = 64*nsetV
+
+    !___________________
+    ! POD procedure
+
+    !calculation of the correlation matrix
+    write(06,*)'Computing correlation matrix'
+    cormat = 0.d0
+    !$OMP PARALLEL DO PRIVATE(l,i,j,ic) SHARED(u,cormat,ivmx,nc,jvmx,nsetv) SCHEDULE(Dynamic)
+    do k=1,nsetv
+       do l=k,nsetv
+          do i=1,ivmx
+             do j=1,jvmx
+                do ic=1,nc
+                   cormat(k,l) = cormat(k,l) +&
+                        u(i,j,ic,k)*u(i,j,ic,l)
+                end do
+             end do
+          end do
+          cormat(k,l) = cormat(k,l)/(real(ivmx*jvmx*nsetv))
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    !----- don't have to fill up cormat entirely
+    ! do k=1,nsetv
+    !    do l=k,nsetv
+    !       cormat(l,k) = cormat(k,l)
+    !    end do
+    ! end do
+
+    !Solving the POD
+    allocate(work(nwork))
+    allocate(lambda_old(nsetv))
+    allocate(cormat_old(nsetv,nsetv))
+
+    datapod.lambda = 0.d0
+    write(06,*)"Entering SSYEV..."
+    call SSYEV('V','U',nsetv,cormat,nsetv,datapod.lambda,WORK,nwork,ifail)
+
+    if (ifail .ne. 0) then
+       write(06,*)'Error in POD calculation, ifail =',ifail
+       write(06,*)'lambda :',datapod.lambda(ifail)
+       stop
+    end if
+
+    lambda_old = datapod.lambda
+    do i=1,nsetv
+       datapod.lambda(i) = lambda_old(nsetv-i+1)
+    end do
+    cpt1 = 0
+    do imod=1,nsetv
+       if (datapod.lambda(imod) < 0.d0) then
+          datapod.lambda(imod) = 1e-20
+          cpt1 = cpt1 + 1
+       end if
+    end do
+    if (cpt1 .ne. 0) then
+       print*, cpt1,'   lambda < 0.'
+    end if
+
+    cormat_old = cormat
+    do i=1,nsetv
+       do j=1,nsetv
+          !norme at lambda
+          cormat(i,j) = cormat_old(i,nsetv-j+1)*sqrt(real(nsetv)*datapod.lambda(j))
+       end do
+    end do
+
+    deallocate(lambda_old)
+    deallocate(cormat_old)
+    deallocate(work)
+
+    !calculating the spatial basis functions
+    write(06,*)'Computing basis functions'
+    datapod.phi = 0.d0
+    !$OMP PARALLEL DO PRIVATE(i,j,ic,iimg) &
+    !$OMP& SHARED(u,cormat,datapod,nc,ivmx,jvmx,nsetv) &
+    !$OMP& SCHEDULE(Dynamic)
+    do imod=1,nsetv
+       do i=1,ivmx
+          do j=1,jvmx
+             do ic=1,nc
+                do iimg=1,nsetv
+
+                   datapod.phi(i,j,ic,imod) = datapod.phi(i,j,ic,imod) +&
+                        u(i,j,ic,iimg)*cormat(iimg,imod)
+
+                end do
+                datapod.phi(i,j,ic,imod) = datapod.phi(i,j,ic,imod)/(real(nsetv)*&
+                     datapod.lambda(imod))
+             end do
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    !saving alphas
+    datapod.alpha=cormat
+
+    !deallocation of the arrays
+    deallocate(cormat)
+
+
+  end subroutine f_makepod
+
+  !##################################################################
+  !#
+  !#
+  !##################################################################
+
+  subroutine f_recons(datapod,nmodes)
+    class(PODdata)                 ::datapod
+    integer(kind=4)                ::nmodes
+
+    integer(kind=4)                ::nx,ny,nc,ns
+    integer(kind=4)                ::i,j,ic,iimg,imod
+    !----------------------------------------------
+    nx = size(datapod.phi(:,1,1,1))
+    ny = size(datapod.phi(1,:,1,1))
+    nc = size(datapod.phi(1,1,:,1))
+    ns = size(datapod.phi(1,1,1,:))
+
+    datapod.upod = 0.d0
+
+    !$OMP PARALLEL DO PRIVATE(j,ic,iimg,imod) &
+    !$OMP& SHARED(datapod,nc,nx,ny,ns) &
+    !$OMP& SCHEDULE(Dynamic)
+    do i=1,nx
+       do j=1,ny
+          do ic=1,nc
+             do iimg=1,ns
+                do imod=1,nmodes
+                   datapod.upod(i,j,ic,iimg) = datapod.upod(i,j,ic,iimg) + &
+                        datapod.alpha(iimg,imod)*datapod.phi(i,j,ic,imod)
+                end do
+             end do
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+  end subroutine f_recons
+
+  !##################################################################
+  !#
+  !#
+  !##################################################################
 
   subroutine f_gappypod(u,w,cptmx,err_min)
 
@@ -153,11 +374,12 @@ contains
           end do
        end do
 
-       do k=1,nsetv
-          do l=k,nsetv
-             cormat(l,k) = cormat(k,l)
-          end do
-       end do
+       ! don't have to be done...
+       ! do k=1,nsetv
+       !    do l=k,nsetv
+       !       cormat(l,k) = cormat(k,l)
+       !    end do
+       ! end do
 
        !Solving the POD
        allocate(work(nwork))

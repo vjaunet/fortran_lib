@@ -22,8 +22,8 @@ module lib_spectral
   !* fft(s(:),f(:),sp(:),psd_param)   , for fft 1d w frequency
   !* ifft(sp(:),s(:),psd_param)       , for inverse fft 1d
   !*
-  !* psd(s(:),sp(:),psd_param,check_Pval)      , for 1d PSD welch
-  !* psd(s(:),f(:),sp(:),psd_param,check_Pval) , for 1d PSD welch w frequency
+  !* psd(s(:),sp(:),psd_param)      , for 1d PSD welch
+  !* psd(s(:),f(:),sp(:),psd_param , for 1d PSD welch w frequency
   !*
   !* psd(t(:),s(:),f(:),sp(:),psd_param,check_Pval) , for 1d PSD stlotting w frequency
   !
@@ -32,6 +32,9 @@ module lib_spectral
   !*
   !* xpsd(s1(:),s2(:),f(:),xsp(:),psd_param)   ,for 1d cross PSD
   !* xcor(s1(:),s2(:),xsp(:),tau(:),psd_param) ,for 1d cross-correlation
+  !*
+  !* mscohere(s1(:),s2(:),f(:),gama(:),psd_param)   ,for 1d magnitude squared coherence
+  !* mscohere(s1(:),s2(:),gama(:),psd_param)   ,for 1d magnitude squared coherence
   !*
   !* xpsd(t1(:),s1(:),t2(:),s2(:),f(:),xsp(:),psd_param)   ,for 1d X-PSD slotting
   !* xcor(t1(:),s1(:),t2(:),s2(:),tau(:),xcor(:),psd_param) ,for 1d X-cor slotting
@@ -59,13 +62,15 @@ module lib_spectral
      integer(kind=8)                ::plan_ifft=0
   end type psd_param
 
-  public  :: fft,ifft, psd,cor, xpsd,xcor,  unwrap_phase
+  public  :: fft,ifft, psd,cor, xpsd, xcor, mscohere, unwrap_phase
 
   private :: c_fft_1d,d_fft_1d,d_fft_1d_f,&
        c_psd_1d, c_psd_1d_f,&
        d_psd_1d, d_psd_1d_f, d_cor_1d,&
        d_xpsd_1d, d_xcor_1d,&
        d_xpsd_1d_f,&
+       c_xpsd_1d_f, c_xpsd_1d,&
+       mscohere_1d, mscohere_1d_f,&
        d_cor_lda, d_psd_lda,&
        d_xcor_lda, d_xpsd_lda,&
        free_fft, rmlintrend,&
@@ -74,31 +79,35 @@ module lib_spectral
 
   interface fft
      module procedure d_fft_1d,d_fft_1d_f,d_fft_2d
-  end interface fft
+  end interface
 
   interface ifft
      module procedure d_ifft_1d,d_ifft_2d
-  end interface ifft
+  end interface
 
   interface psd
      module procedure c_psd_1d, c_psd_1d_f, d_psd_1d, d_psd_1d_f, d_psd_lda
-  end interface psd
+  end interface
 
   interface cor
      module procedure d_cor_1d, d_cor_lda
-  end interface cor
+  end interface
 
   interface xpsd
-     module procedure d_xpsd_1d, d_xpsd_1d_f, d_xpsd_lda
-  end interface xpsd
+     module procedure d_xpsd_1d, d_xpsd_1d_f, c_xpsd_1d, c_xpsd_1d_f, d_xpsd_lda
+  end interface
+
+  interface mscohere
+     module procedure mscohere_1d,mscohere_1d_f
+  end interface
 
   interface xcor
      module procedure d_xcor_1d, d_xcor_lda, d_xcor_2d
-  end interface xcor
+  end interface
 
   interface unwrap_phase
      module procedure unwrap_phase_f, unwrap_phase_d
-  end interface unwrap_phase
+  end interface
 
 contains
 
@@ -400,7 +409,7 @@ contains
 
     complex(kind=8)  ,dimension(:),allocatable  ::sp_tmp
 
-    complex(kind=8)                             ::moy,rms,sigmoy,sigrms
+    real(kind=8)                                ::moy,rms,sigmoy,sigrms
     real(kind=8)                                ::powfen2
 
     integer(kind=8)                             ::is_deb,is_fin
@@ -419,10 +428,10 @@ contains
     end if
 
     !remove mean and compute input rms
-    sigmoy = sum(s(:))/dble(nn)
-    sigrms = sqrt(sum((s(:)-sigmoy)**2)/dble(nn))
-    !remove the mean (DC)
-    s(:)  = s(:) - sigmoy
+    ! sigmoy = sum(s(:))/dble(nn)
+    ! sigrms = sqrt(sum((s(:)-sigmoy)**2)/dble(nn))
+    ! !remove the mean (DC)
+    ! s(:)  = s(:) - sigmoy
 
     !initialization
     allocate(window(def_param.nfft))
@@ -471,8 +480,8 @@ contains
     deallocate(xk,sk,window)
 
     !account of window energy
-    !and one sided spectrum
-    sp = 2.d0*sp/powfen2
+    !double sided spectrum
+    sp = sp/powfen2
 
     !Averaging the blocks
     sp = sp/dble(ic)
@@ -481,24 +490,23 @@ contains
     sp = sp/def_param.fe*dble(def_param.nfft)
 
     !check the parseval theorem if wanted
-    if (def_param.check_pval == .true.) then
-       rms = 0.d0
-       rms = rms + 0.5d0*abs(sp(1))*&
-            def_param.fe/dble(def_param.nfft)
-       do if=2,def_param.nfft-1
-          rms = rms + 1.d0*abs(sp(if))*&
-               def_param.fe/dble(def_param.nfft)
-       end do
-       rms = rms + 0.5d0*abs(sp(def_param.nfft))*&
-            def_param.fe/dble(def_param.nfft)
-       write(06,'(a,e15.3,2x,e15.3)')'Parseval rms, sum(psd*df) : ',sigrms,sqrt(rms)
-    end if
+    ! if (def_param.check_pval == .true.) then
+    !    rms = 0.d0
+    !    rms = rms + 0.5d0*abs(sp(1))*&
+    !         def_param.fe/dble(def_param.nfft)
+    !    do if=2,def_param.nfft-1
+    !       rms = rms + 1.d0*abs(sp(if))*&
+    !            def_param.fe/dble(def_param.nfft)
+    !    end do
+    !    rms = rms + 0.5d0*abs(sp(def_param.nfft))*&
+    !         def_param.fe/dble(def_param.nfft)
+    !    write(06,'(a,e15.3,2x,e15.3)')'Parseval rms, sum(psd*df) : ',sigrms,sqrt(rms)
+    ! end if
 
     !normalize output power
-    if (def_param.rms_norm .and. sigrms /= 0.d0) then
-       sp = sp/(sigrms**2)
-    end if
-
+    ! if (def_param.rms_norm .and. sigrms /= 0.d0) then
+    !    sp = sp/(sigrms**2)
+    ! end if
 
     !fliping the spectrum
     allocate(sp_tmp(size(sp,1)/2))
@@ -507,9 +515,8 @@ contains
     sp(def_param.nfft/2+1:def_param.nfft) = sp_tmp(:)
     deallocate(sp_tmp)
 
-
     !Recovering original signal
-    s = s + sigmoy
+    !    s = s + sigmoy
 
     return
 
@@ -855,8 +862,288 @@ contains
 
   end subroutine d_xpsd_1d_f
 
+  subroutine c_xpsd_1d (s1,s2,sp,param)
+    complex(kind=8)     ,dimension(:)           ::s1,s2
+    complex(kind=8)  ,dimension(:)              ::sp
+    type(psd_param)  ,optional                  ::param
+
+    complex(kind=8),dimension(:) ,allocatable   ::xk
+    real(kind=8),   dimension(:) ,allocatable   ::window
+    complex(kind=8),dimension(:) ,allocatable   ::sk,sk_tmp,sp_tmp
+    integer(kind=8)                             ::plan
+    integer(kind=8)                             ::nf
+    type(psd_param)                             ::def_param
+
+    real(kind=8)                                ::sigmoy2,sigrms2
+    real(kind=8)                                ::sigmoy1,sigrms1
+    real(kind=8)                                ::powfen2,rms
+
+    integer(kind=8)                             ::is_deb,is_fin,nn
+    !----------------------------------------------------------------
+
+    nn = size(s1,1)
+
+    if (present(param)) then
+       def_param = param
+    end if
+
+    if (size(sp) .ne. def_param.nfft) then
+       write(06,*) 'sp size invalid : sp(1:nfft) in c_xpsd_1d'
+       stop
+    end if
+
+    ! !remove mean and compute input rms
+    ! sigmoy1 = sum(s1(:))/dble(nn)
+    ! sigrms1 = dsqrt(sum((s1(:)-sigmoy1)**2)/dble(nn))
+    ! !remove the mean (DC)
+    ! s1(:)  = s1(:) - sigmoy1
+
+    ! sigmoy2 = sum(s2(:))/dble(nn)
+    ! sigrms2 = dsqrt(sum((s2(:)-sigmoy2)**2)/dble(nn))
+    ! !remove the mean (DC)
+    ! s2(:)  = s2(:) - sigmoy2
+
+    !initialization
+    allocate(window(def_param.nfft))
+    allocate(xk(def_param.nfft))
+    allocate(sk(def_param.nfft))
+    allocate(sk_tmp(def_param.nfft))
+    sp = 0.d0
+    sk = 0.d0
+    sk_tmp = 0.d0
+    ic = 0
+    is_deb = 1
+    is_fin = def_param.nfft
+
+    call get_window(def_param,window,powfen2)
+
+    !start the psd processing
+    do while(is_fin.le.nn)
+
+       !extract sample
+       do i=is_deb,is_fin
+          xk(i-ic*def_param.overlap) = s1(i)
+       end do
+
+       !removing trend s1
+       !call rmlintrend(xk,def_param.nfft)
+
+       !windowing
+       xk(:) = xk(:) * window(:)
+
+       !fft
+       call c_fft_1d(xk,sk,def_param)
+       sk_tmp = sk
+
+       !extract sample
+       do i=is_deb,is_fin
+          xk(i-ic*def_param.overlap) = s2(i)
+       end do
+
+       !removing trend s2
+       !call rmlintrend(xk,def_param.nfft)
+
+       !windowing
+       xk(:) = xk(:) * window(:)
+
+       !fft
+       call c_fft_1d(xk,sk,def_param)
+
+       !compute inter-spectrum
+       sp = sp + sk_tmp*dconjg(sk)
+
+       !Get new block
+       is_deb = is_deb+def_param.overlap
+       is_fin = is_fin+def_param.overlap
+       ic     = ic + 1
+    end do
+
+    deallocate(xk)
+    deallocate(sk,sk_tmp)
+    deallocate(window)
+
+    !free fftw3
+    call free_fft(def_param)
+
+    !account of window energy
+    !and one sided spectrum
+    sp = sp/powfen2
+
+    !Averaging the blocks
+    sp = sp/dble(ic)
+
+    !energy per hertz
+    sp = sp/def_param.fe*dble(def_param.nfft)
+
+    !fliping the spectrum
+    allocate(sp_tmp(size(sp,1)/2))
+    sp_tmp(:) =  sp(1:def_param.nfft/2)
+    sp(1:def_param.nfft/2) = sp(def_param.nfft/2+1:def_param.nfft)
+    sp(def_param.nfft/2+1:def_param.nfft) = sp_tmp(:)
+    deallocate(sp_tmp)
+
+    ! if (def_param.check_pval) then
+    !    rms = 0.d0
+    !    rms = rms + 0.5d0*abs(sp(1))*&
+    !         def_param.fe/dble(def_param.nfft)
+    !    do if=2,def_param.nfft/2
+    !       rms = rms + 1.d0*abs(sp(if))*&
+    !            def_param.fe/dble(def_param.nfft)
+    !    end do
+    !    rms = rms + 0.5d0*abs(sp(def_param.nfft/2+1))*&
+    !         def_param.fe/dble(def_param.nfft)
+    !    write(06,'(a,e15.3,2x,e15.3)')'Parseval rms**2, sum(xpsd*df) : ', sqrt(sigrms1*sigrms2),rms
+    ! end if
+
+    ! !normalize output power
+    ! if (def_param.rms_norm &
+    !      .and. sigrms1 /= 0.d0 &
+    !      .and. sigrms2 /= 0.d0) then
+    !    sp = sp/(sigrms1*sigrms2)
+    ! end if
+
+    return
+
+  end subroutine c_xpsd_1d
+
+  subroutine c_xpsd_1d_f (s1,s2,f,sp,param)
+    complex(kind=8)     ,dimension(:)              ::s1,s2
+    real(kind=8)        ,dimension(:)              ::f
+    complex(kind=8)     ,dimension(:)              ::sp
+    type(psd_param)     ,optional                  ::param
+
+    type(psd_param)                                ::def_param
+    !----------------------------------------------------------
+
+    if (present(param)) then
+       def_param = param
+    end if
+
+    !call xpsd
+    call c_xpsd_1d(s1,s2,sp,def_param)
+
+    !free fftw3
+    call free_fft(def_param)
+
+    !fill in f
+    do if=1,def_param.nfft
+       f(if) = def_param.fe*&
+            dble(if-def_param.nfft/2-1)/dble(def_param.nfft)
+    end do
+
+    return
+
+  end subroutine c_xpsd_1d_f
+
   !----------------------------------------------------
   !*  END Cross-PSD
+  !----------------------------------------------------
+
+  !----------------------------------------------------
+  !*  Magnitude Squared Coherence
+  !----------------------------------------------------
+  subroutine mscohere_1d(s1,s2,gama,param)
+    type(psd_param)  ,optional                  ::param
+    class(*)         ,dimension(:)              ::s1,s2
+    real(kind=8)     ,dimension(:)              ::gama
+    type(psd_param)                             ::def_param
+
+    complex(kind=8)  ,dimension(:), allocatable ::xpsd,psd1,psd2
+    complex(kind=8)  ,dimension(:), allocatable ::c1,c2
+    real(kind=8)     ,dimension(:), allocatable ::d1,d2
+    integer                                     ::ns,nf
+    logical                                     ::cplx=.false.
+    !-------------------------------------------------------------
+
+    ns=size(s1,1)
+
+    if (present(param)) def_param=param
+
+    ! Polymorphisme in Fortran.....
+    select type (s1)
+    type is (complex*16)
+       allocate(c1(ns))
+       c1=s1
+       nf = def_param.nfft
+       cplx=.true.
+    type is (real*8)
+       allocate(d1(ns))
+       d1=s1
+       nf = def_param.nfft/2+1
+       cplx=.false.
+    end select
+
+    select type (s2)
+    type is (complex*16)
+       allocate(c2(ns))
+       c2=s2
+       nf = def_param.nfft
+    type is (real*8)
+       allocate(d2(ns))
+       d2=s2
+    end select
+
+    ! compute the xpsd
+    allocate(xpsd(nf))
+    allocate(psd1(nf),psd2(nf))
+
+    if (cplx) then
+       call c_xpsd_1d(c1,c2,xpsd,def_param)
+       call c_psd_1d(c1,psd1,def_param)
+       call c_psd_1d(c2,psd2,def_param)
+    else
+       call d_xpsd_1d(d1,d2,xpsd,def_param)
+       call d_psd_1d(d1,psd1,def_param)
+       call d_psd_1d(d2,psd2,def_param)
+    end if
+
+
+    !normalize for coherence computation
+    gama=abs(xpsd)**2/(psd1*psd2)
+
+    if (allocated(c1)) deallocate(c1)
+    if (allocated(c2)) deallocate(c2)
+    if (allocated(d1)) deallocate(d1)
+    if (allocated(d2)) deallocate(d2)
+    if (allocated(psd1)) deallocate(psd1)
+    if (allocated(psd2)) deallocate(psd2)
+    if (allocated(xpsd)) deallocate(xpsd)
+
+  end subroutine mscohere_1d
+
+  subroutine mscohere_1d_f(s1,s2,f,gama,param)
+    type(psd_param)  ,optional                  ::param
+    class(*)         ,dimension(:)              ::s1,s2
+    real(kind=8)     ,dimension(:)              ::gama,f
+    type(psd_param)                             ::def_param
+    !-------------------------------------------------------------
+
+    if (present(param)) def_param=param
+
+    call mscohere_1d(s1,s2,gama,param)
+
+    select type (s1)
+    type is (complex*16)
+       !fill in f
+       do if=1,def_param.nfft
+          f(if) = def_param.fe*&
+               dble(if-def_param.nfft/2-1)/dble(def_param.nfft)
+       end do
+
+    type is (real*16)
+       !fill in f
+       do if=1,def_param.nfft/2+1
+          f(if) = def_param.fe*&
+               dble(if-1)/dble(def_param.nfft)
+       end do
+
+    end select
+
+  end subroutine mscohere_1d_f
+
+
+  !----------------------------------------------------
+  !*  END Magnitude Squared Coherence
   !----------------------------------------------------
 
   !----------------------------------------------------
