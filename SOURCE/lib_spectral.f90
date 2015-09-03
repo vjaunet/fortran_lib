@@ -41,6 +41,8 @@ module lib_spectral
   !*
   !* unwrap_phase(phi(:)) ,to unwrap the phase given by atan2(Re,Im)
   !*
+  !* fillf(f, psd_param) fill frequnecy vector up
+  !*
   !*==============================================================================
 
   integer(kind=8), private ::i,j,k,in,if,ic
@@ -62,13 +64,14 @@ module lib_spectral
      integer(kind=8)                ::plan_ifft=0
   end type psd_param
 
-  public  :: fft,ifft, psd,cor, xpsd, xcor, mscohere, unwrap_phase
+  public  :: fft,ifft, psd,cor, xpsd, xcor, mscohere, unwrap_phase, fillf
 
   private :: c_fft_1d,d_fft_1d,d_fft_1d_f,&
+       d_ifft_1d,d_ifft_2d,c_ifft_1d,&
        c_psd_1d, c_psd_1d_f,&
        d_psd_1d, d_psd_1d_f, d_cor_1d,&
-       d_xpsd_1d, d_xcor_1d,&
-       d_xpsd_1d_f,&
+       xcor_1d,&
+       d_xpsd_1d,d_xpsd_1d_f,&
        c_xpsd_1d_f, c_xpsd_1d,&
        mscohere_1d, mscohere_1d_f,&
        d_cor_lda, d_psd_lda,&
@@ -82,7 +85,7 @@ module lib_spectral
   end interface
 
   interface ifft
-     module procedure d_ifft_1d,d_ifft_2d
+     module procedure d_ifft_1d,d_ifft_2d,c_ifft_1d
   end interface
 
   interface psd
@@ -102,7 +105,7 @@ module lib_spectral
   end interface
 
   interface xcor
-     module procedure d_xcor_1d, d_xcor_lda, d_xcor_2d
+     module procedure xcor_1d, d_xcor_lda, d_xcor_2d
   end interface
 
   interface unwrap_phase
@@ -246,10 +249,7 @@ contains
     call d_fft_1d(s, sp, param)
 
     !fill in F
-    do if=1,def_param.nfft/2+1
-       f(if) = def_param.fe*&
-            dble(if-1)/dble(def_param.nfft)
-    end do
+    call fillf(f,def_param)
 
     !return parameter values for next call
     if (present(param)) then
@@ -332,7 +332,7 @@ contains
 
     if (.not.def_param.allocated_ifft) then
        !allocate fftw
-       call dfftw_plan_dft_c2r_2d(def_param.plan_ifft,&
+       call dfftw_plan_dft_c2r_1d(def_param.plan_ifft,&
             size(sp,1),sp,s,FFTW_ESTIMATE)
        def_param.allocated_ifft = .true.
     end if
@@ -348,6 +348,38 @@ contains
     return
 
   end subroutine d_ifft_1d
+
+  subroutine c_ifft_1d(sp,s,param)
+    complex(kind=8)  ,dimension(:)              ::s
+    complex(kind=8)  ,dimension(:)              ::sp
+    type(psd_param) ,optional                   ::param
+
+    type(psd_param)                             ::def_param
+    integer(kind=8)                             ::plan
+    !----------------------------------------------------
+
+    if (present(param)) then
+       def_param = param
+    end if
+
+    if (.not.def_param.allocated_ifft) then
+       !allocate fftw
+       call dfftw_plan_dft_1d(def_param.plan_ifft,&
+            size(sp,1),sp,s,FFTW_BACKWARD,FFTW_ESTIMATE)
+       def_param.allocated_ifft = .true.
+    end if
+
+    !compute fftw
+    call dfftw_execute(def_param.plan_ifft,sp,s)
+
+    !return parameter values for next call
+    if (present(param)) then
+       param = def_param
+    end if
+
+    return
+
+  end subroutine c_ifft_1d
 
   subroutine d_ifft_2d(sp,s,param)
     complex(kind=8)  ,dimension(:,:)            ::sp
@@ -429,7 +461,7 @@ contains
 
     !remove mean and compute input rms
     ! sigmoy = sum(s(:))/dble(nn)
-    ! sigrms = sqrt(sum((s(:)-sigmoy)**2)/dble(nn))
+    sigrms = sqrt(sum((abs(s(:)))**2)/dble(nn))
     ! !remove the mean (DC)
     ! s(:)  = s(:) - sigmoy
 
@@ -490,25 +522,25 @@ contains
     sp = sp/def_param.fe*dble(def_param.nfft)
 
     !check the parseval theorem if wanted
-    ! if (def_param.check_pval == .true.) then
-    !    rms = 0.d0
-    !    rms = rms + 0.5d0*abs(sp(1))*&
-    !         def_param.fe/dble(def_param.nfft)
-    !    do if=2,def_param.nfft-1
-    !       rms = rms + 1.d0*abs(sp(if))*&
-    !            def_param.fe/dble(def_param.nfft)
-    !    end do
-    !    rms = rms + 0.5d0*abs(sp(def_param.nfft))*&
-    !         def_param.fe/dble(def_param.nfft)
-    !    write(06,'(a,e15.3,2x,e15.3)')'Parseval rms, sum(psd*df) : ',sigrms,sqrt(rms)
-    ! end if
+    if (def_param.check_pval == .true.) then
+       rms = 0.d0
+       rms = rms + 0.5d0*abs(sp(1))*&
+            def_param.fe/dble(def_param.nfft)
+       do if=2,def_param.nfft-1
+          rms = rms + 1.d0*abs(sp(if))*&
+               def_param.fe/dble(def_param.nfft)
+       end do
+       rms = rms + 0.5d0*abs(sp(def_param.nfft))*&
+            def_param.fe/dble(def_param.nfft)
+       write(06,'(a,e15.3,2x,e15.3)')'Parseval rms, sum(psd*df) : ',sigrms,sqrt(rms)
+    end if
 
     !normalize output power
-    ! if (def_param.rms_norm .and. sigrms /= 0.d0) then
-    !    sp = sp/(sigrms**2)
-    ! end if
+    if (def_param.rms_norm .and. sigrms /= 0.d0) then
+       sp = sp/(sigrms**2)
+    end if
 
-    !fliping the spectrum
+    !fliping the spectrum -> from - to +
     allocate(sp_tmp(size(sp,1)/2))
     sp_tmp(:) =  sp(1:def_param.nfft/2)
     sp(1:def_param.nfft/2) = sp(def_param.nfft/2+1:def_param.nfft)
@@ -516,7 +548,7 @@ contains
     deallocate(sp_tmp)
 
     !Recovering original signal
-    !    s = s + sigmoy
+    !s = s + sigmoy
 
     return
 
@@ -653,11 +685,11 @@ contains
     !call psd
     call c_psd_1d(s,sp,def_param)
 
-    !fill in f
-    do if=1,def_param.nfft
-       f(if) = def_param.fe*&
-            dble(if-def_param.nfft/2-1)/dble(def_param.nfft)
-    end do
+    !free memory
+    call free_fft(def_param)
+
+    !fill f in
+    call fillf(f,def_param)
 
     return
 
@@ -679,11 +711,11 @@ contains
     !call psd
     call d_psd_1d(s,sp,def_param)
 
+    !free some memory
+    call free_fft(def_param)
+
     !fill in f
-    do if=1,def_param.nfft/2+1
-       f(if) = def_param.fe*&
-            dble(if-1)/dble(def_param.nfft)
-    end do
+    call fillf(f,def_param)
 
     return
 
@@ -853,10 +885,7 @@ contains
     call free_fft(def_param)
 
     !fill in f
-    do if=1,def_param.nfft/2+1
-       f(if) = def_param.fe*&
-            dble(if-1)/dble(def_param.nfft)
-    end do
+    call fillf(f,def_param)
 
     return
 
@@ -975,7 +1004,7 @@ contains
     !energy per hertz
     sp = sp/def_param.fe*dble(def_param.nfft)
 
-    !fliping the spectrum
+    !fliping the spectrum negative to positive
     allocate(sp_tmp(size(sp,1)/2))
     sp_tmp(:) =  sp(1:def_param.nfft/2)
     sp(1:def_param.nfft/2) = sp(def_param.nfft/2+1:def_param.nfft)
@@ -1026,10 +1055,7 @@ contains
     call free_fft(def_param)
 
     !fill in f
-    do if=1,def_param.nfft
-       f(if) = def_param.fe*&
-            dble(if-def_param.nfft/2-1)/dble(def_param.nfft)
-    end do
+    call fillf(f,def_param)
 
     return
 
@@ -1099,7 +1125,7 @@ contains
 
 
     !normalize for coherence computation
-    gama=abs(xpsd)**2/(psd1*psd2)
+    gama=abs(xpsd)**2/(abs(psd1)*abs(psd2))
 
     if (allocated(c1)) deallocate(c1)
     if (allocated(c2)) deallocate(c2)
@@ -1122,22 +1148,9 @@ contains
 
     call mscohere_1d(s1,s2,gama,param)
 
-    select type (s1)
-    type is (complex*16)
-       !fill in f
-       do if=1,def_param.nfft
-          f(if) = def_param.fe*&
-               dble(if-def_param.nfft/2-1)/dble(def_param.nfft)
-       end do
+    call fillf(f,def_param)
 
-    type is (real*16)
-       !fill in f
-       do if=1,def_param.nfft/2+1
-          f(if) = def_param.fe*&
-               dble(if-1)/dble(def_param.nfft)
-       end do
-
-    end select
+    return
 
   end subroutine mscohere_1d_f
 
@@ -1666,24 +1679,31 @@ contains
 
   !-----------------------
 
-  subroutine d_xcor_1d(s1,s2,tau,xcor,param)
-    real(kind=8)     ,dimension(:)              ::s1,s2
-    real(kind=8)     ,dimension(:)              ::xcor
+  subroutine xcor_1d(s1,s2,tau,xcor,param)
+    class(*)         ,dimension(:)              ::s1,s2
+    class(*)         ,dimension(:)              ::xcor
     type(psd_param)  ,optional                  ::param
     real(kind=8)     ,dimension(:)              ::tau
 
     complex(kind=8) ,dimension(:) , allocatable ::xsp,xsp_full
-    real(kind=8)    ,dimension(:) , allocatable ::xcor_tmp
+    complex(kind=8) ,dimension(:) , allocatable ::c_xcor_tmp
+    real(kind=8)    ,dimension(:) , allocatable ::d_xcor_tmp
     type(psd_param)                             ::def_param
 
-    real(kind=8)                                ::rms
-    integer(kind=8)                             ::nf
+    complex(kind=8) ,dimension(:) , allocatable ::c1,c2
+    real(kind=8)    ,dimension(:) , allocatable ::d1,d2
+
+    real(kind=8)                                ::rms1,rms2
+    integer(kind=8)                             ::nf,ns
+    logical                                     ::cplx
     !---------------------------------------------------
 
     if (size(tau) /= size(xcor)) then
-       STOP 'size(tau) /= size(cor) in d_xcor_1d'
+       STOP 'size(tau) /= size(cor) in xcor_1d'
     else if (size(s1) .lt. size(tau)) then
-       STOP 'size(s1) < size(tau) in d_cor_1d'
+       STOP 'size(s1) < size(tau) in xcor_1d'
+    else if (size(s1) .ne. size(s2)) then
+       STOP 'size(s1) /= size(s2) in xcor_1d'
     end if
 
     if (present(param)) then
@@ -1691,40 +1711,96 @@ contains
     end if
 
     nf = def_param.nfft
+    ns=size(s1)
 
     !fill in tau
     do i=1,nf
        tau(i) = (dble(i)-nf/2-1)/def_param.fe
     end do
 
-    !compute XPSD using Welch's method
-    allocate(xsp(nf/2+1))
-    call d_xpsd_1d(s1,s2,xsp,def_param)
+    ! Polymorphisme in Fortran.....
+    select type (s1)
+    type is (complex*16)
+       allocate(c1(ns))
+       c1=s1
+       nf = def_param.nfft
+       cplx=.true.
+    type is (real*8)
+       allocate(d1(ns))
+       d1=s1
+       nf = def_param.nfft
+       cplx=.false.
+    end select
 
-    !compute inverse FFT of PSD/2.0 (Wiener-Kintchine)
+    select type (s2)
+    type is (complex*16)
+       allocate(c2(ns))
+       c2=s2
+    type is (real*8)
+       allocate(d2(ns))
+       d2=s2
+    end select
+
     allocate(xsp_full(nf))
-    xsp_full(1:nf/2+1)  = xsp/2.
-    xsp_full(nf/2+2:nf) = xsp(nf/2+2:2:-1)/2.
-    call d_ifft_1d(xsp_full,xcor,def_param)
+    if (cplx) then
+       !compute XPSD using Welch's method
+       allocate(xsp(nf))
+       call c_xpsd_1d(c1,c2,xsp,def_param)
+
+       !compute inverse FFT of PSD (Wiener-Kintchine)
+       allocate(c_xcor_tmp(nf))
+       xsp_full(1:nf/2+1)  = xsp(nf/2+1:1:-1)
+       xsp_full(nf/2+2:nf) = xsp(1:nf/2:1)
+       call c_ifft_1d(xsp_full,c_xcor_tmp,def_param)
+
+       rms1 = sum(abs(c1)**2)/real(ns)
+       rms2 = sum(abs(c2)**2)/real(ns)
+
+    else
+       !compute XPSD using Welch's method
+       allocate(xsp(nf/2+1))
+       call d_xpsd_1d(d1,d2,xsp,def_param)
+
+       !compute inverse FFT of PSD/2.0 (Wiener-Kintchine)
+       allocate(d_xcor_tmp(nf))
+       xsp_full(1:nf/2+1)  = xsp/2.
+       xsp_full(nf/2+2:nf) = xsp(nf/2+1:2:-1)/2.
+
+       call d_ifft_1d(xsp_full,d_xcor_tmp,def_param)
+
+    end if
+
+    select type(xcor)
+    type is (complex*16)
+       !swap left and rigth
+       xcor(nf/2+1:nf) = c_xcor_tmp(1:nf/2)
+       xcor(1:nf/2)    = c_xcor_tmp(nf/2+1:nf)
+       deallocate(c_xcor_tmp)
+
+       !norm_fft the correlation
+       xcor =xcor*def_param.fe/real(def_param.nfft)
+
+    type is (real*8)
+       !swap left and rigth
+       xcor(nf/2+1:nf) = d_xcor_tmp(1:nf/2)
+       xcor(1:nf/2)    = d_xcor_tmp(nf/2+1:nf)
+       deallocate(d_xcor_tmp)
+
+       !norm_fft the correlation
+       xcor =xcor*def_param.fe/real(def_param.nfft)
+
+    end select
 
     !free ifft
     call free_ifft(def_param)
 
-    !swap left an rigth
-    allocate(xcor_tmp(nf))
-    xcor_tmp(nf/2+1:nf) = xcor(1:nf/2)
-    xcor_tmp(1:nf/2)    = xcor(nf/2+1:nf)
-    xcor = xcor_tmp
 
-    !norm_fft the correlation
-    xcor =xcor*def_param.fe/real(def_param.nfft)
-
-    deallocate(xcor_tmp)
-    deallocate(xsp)
+    deallocate(xsp,xsp_full)
 
     return
 
-  end subroutine d_xcor_1d
+  end subroutine xcor_1d
+
 
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1788,7 +1864,6 @@ contains
 
     !free ffts
     call free_ifft(def_param)
-    call free_fft(def_param)
 
     !swap x
     allocate(xcor_tmp_x(nx/2,ny))
@@ -1808,7 +1883,7 @@ contains
     !norm_fft the correlation
     xcor =xcor*def_param.fe/dble(nx*ny)**2
 
-    !getthe correlation coefficient
+    !get the correlation coefficient
     if (def_param.rms_norm) then
        avg1 = sum(s1)/nx/ny
        avg2 = sum(s2)/nx/ny
@@ -2022,6 +2097,36 @@ contains
 
   !----------------------------------------------------
   !*  END Unwrapping phase
+  !----------------------------------------------------
+  !----------------------------------------------------
+  !*  filling F
+  !----------------------------------------------------
+  subroutine fillf(f,param_psd)
+    type(psd_param) ,optional                 ::param_psd
+    real(kind=8)    ,dimension(:)             ::f
+    type(psd_param)                           ::def_param
+    !----------------------------------------------------
+
+    if (present(param_psd)) def_param=param_psd
+
+    if (size(f) == def_param.nfft) then
+       !complex fft
+       do if=1,def_param.nfft
+          f(if) = def_param.fe*&
+               dble(if-def_param.nfft/2-1)/dble(def_param.nfft)
+       end do
+    else
+       !real fft
+       do if=1,def_param.nfft/2+1
+          f(if) = def_param.fe*&
+               dble(if-1)/dble(def_param.nfft)
+       end do
+    end if
+
+    return
+  end subroutine fillf
+  !----------------------------------------------------
+  !*  END fillinf F
   !----------------------------------------------------
 
 

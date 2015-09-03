@@ -1,4 +1,4 @@
-module interpol
+module lib_interpol
   use omp_lib
   implicit none
 
@@ -77,15 +77,15 @@ module interpol
 
   interface spline_inter
      module procedure d_spline_inter_1d
-  end interface spline_inter
+  end interface
 
   interface inv_dist_inter
      module procedure d_inverse_dist_1d
-  end interface inv_dist_inter
+  end interface
 
   interface bicubic_inter
      module procedure d_bicubic_interp_2d, f_bicubic_interp_2d
-  end interface bicubic_inter
+  end interface
 
 contains
 
@@ -1492,4 +1492,4 @@ contains
 
   end subroutine get_4neighbors
 
-end module interpol
+end module lib_interpol
