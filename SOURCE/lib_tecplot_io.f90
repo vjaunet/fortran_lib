@@ -582,12 +582,13 @@ contains
     nc = size(tab,2)
 
 1664 format (<nc+1>(e15.8,2x))
+1666 format (a,i0)
 1665 format (a,a,a,i0)
 
     if (present(zonetitle)) then
        write(filespec.fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
     else
-       write(filespec.fid,1665)'Zone T="", I=',nn
+       write(filespec.fid,1666)'Zone T="", I=',nn
     end if
 
     select type (tab)
