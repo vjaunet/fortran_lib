@@ -443,6 +443,8 @@ end subroutine piv_average
 
     if (datapiv.ncgen > 0) then
        write(06,'(a,10(f10.3,2x))')"  - Stagnation Conditions :",(datapiv.cgen(i),i=1,datapiv.ncgen)
+       else
+          write(06,'(a)') " No Stagnation condition stored"
     end if
 
   end subroutine piv_info
