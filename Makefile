@@ -28,27 +28,6 @@ ALL:spectral pod spectralpod stat interpol tecplot qsort piv_data
 debug: CC += $(Debug)
 debug: ALL
 
-#%.mod:
-
-# %.o: %.f90
-# 	@cd SOURCE/; \
-# 	echo $(CC) -c lib_spectral.f90  $(LIBS); \
-# 	$(CC) -c lib_spectral.f90  $(LIBS); \
-# 	echo $(CC) -c lib_pod.f90  $(LIBS); \
-# 	$(CC) -c lib_pod.f90  $(LIBS); \
-# 	echo $(CC) -c lib_spectralPOD.f90  $(LIBS); \
-# 	$(CC) -c lib_spectralPOD.f90  $(LIBS); \
-# 	echo $(CC) -c lib_stat.f90  $(LIBS); \
-# 	$(CC) -c lib_stat.f90  $(LIBS); \
-# 	echo $(CC) -c interpol.f90  $(LIBS); \
-# 	$(CC) -c interpol.f90  $(LIBS); \
-# 	echo $(CC) -c lib_tecplot_io.f90  $(LIBS); \
-# 	$(CC) -c lib_tecplot_io.f90  $(LIBS); \
-# 	echo $(CC) -c qsort.f90  $(LIBS); \
-# 	$(CC) -c qsort.f90  $(LIBS); \
-# 	echo $(CC) -c lib_piv_data.f90  $(LIBS);
-# 	$(CC) -c lib_piv_data.f90  $(LIBS);
-
 spectral:lib_spectral.mod
 lib_spectral.mod:SOURCE/lib_spectral.f90
 	$(CC) -c $^ $(LIBS);

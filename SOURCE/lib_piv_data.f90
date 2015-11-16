@@ -114,7 +114,7 @@ contains
     n2 = datapiv.ny
 
     if (PRESENT(Nstats)) then
-       NMax = Nstats
+       Nmax = Nstats
     else
        Nmax = datapiv.nsamples
     end if
@@ -459,6 +459,7 @@ end subroutine piv_average
   subroutine piv_detect_outlier(datapiv,method,wsize,nsigma)
     use lib_pod
     use lib_stat
+    use omp_lib
     class(PIVdata)                            ::datapiv
     character(len=*)                          ::method
     integer    ,optional                      ::wsize
@@ -511,32 +512,14 @@ end subroutine piv_average
        datapiv.w = 1.d0
     end if
 
-
     !--------------------------------------
     ! Nsigma detection
 
     if (method == "SIG") then
 
-       allocate(datapiv.stat.u_mean(nx,ny,datapiv.ncomponent))
-       allocate(datapiv.stat.u_rms(nx,ny,datapiv.ncomponent))
-
-
        !computing stats for nsigma outlier detection
-       do ic=1,nc
-          do j=1,ny
-             do i=1,nx
-
-                call average(datapiv.u(i,j,ic,:),&
-                     datapiv.stat.u_mean(i,j,ic),&
-                     datapiv.w(i,j,:))
-
-                call rms    (datapiv.u(i,j,ic,:),&
-                     datapiv.stat.u_rms(i,j,ic),&
-                     datapiv.w(i,j,:))
-
-             end do
-          end do
-       end do
+       call piv_average(datapiv)
+       call piv_rms(datapiv)
 
        !loop through the samples
        do is=1,ns
@@ -564,12 +547,14 @@ end subroutine piv_average
     ! spatial detection methods
 
     !loop through all the samples
+    call omp_set_num_threads(25)
+!!!! !$OMP PARALLEL DO PRIVATE(ic,j,i,ii,jj,id,if,jd,jf,utest,nvec,neighbor,neighflag) SHARED(datapiv,method) SCHEDULE(Dynamic)
     do is=1,ns
        do ic=1,nc
           do j=1,ny
              do i=1,nx
 
-                !detecting only if necessary
+                !test only if vector is not already an outlier
                 if (datapiv.w(i,j,is) /= 0.d0) then
 
                    !computing the Interrogation Area size
@@ -628,19 +613,17 @@ end subroutine piv_average
                    !storing the flag :
                    !if flag = 0 an outlier has been detected
                    datapiv.w(i,j,ic) = neighflag(1)
-                   if (datapiv.w(i,j,ic) /= 1.d0) then
-                      datapiv.u(i,j,ic,is) = -1000.d0
-                   end if
 
                    deallocate(neighbor)
                    deallocate(neighflag)
 
-                end if !end w=0
+                end if !w/=0
 
              end do
           end do
        end do
     end do
+!!!!   !$OMP END PARALLEL DO
 
     return
 
