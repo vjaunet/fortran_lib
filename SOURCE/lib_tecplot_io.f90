@@ -1,4 +1,4 @@
-module tecplot_IO
+module lib_tecplot_IO
   implicit none
   !=================Specification=============================
   !*
@@ -935,4 +935,4 @@ contains
 
   !--------------------------------------------
   !! end of module
-end module tecplot_IO
+end module lib_tecplot_IO

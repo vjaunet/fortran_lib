@@ -82,35 +82,35 @@ module lib_spectral
 
   interface fft
      module procedure d_fft_1d,d_fft_1d_f,d_fft_2d
-  end interface
+  end interface fft
 
   interface ifft
      module procedure d_ifft_1d,d_ifft_2d,c_ifft_1d
-  end interface
+  end interface ifft
 
   interface psd
      module procedure c_psd_1d, c_psd_1d_f, d_psd_1d, d_psd_1d_f, d_psd_lda
-  end interface
+  end interface psd
 
   interface cor
      module procedure d_cor_1d, d_cor_lda
-  end interface
+  end interface cor
 
   interface xpsd
      module procedure d_xpsd_1d, d_xpsd_1d_f, c_xpsd_1d, c_xpsd_1d_f, d_xpsd_lda
-  end interface
+  end interface xpsd
 
   interface mscohere
      module procedure mscohere_1d,mscohere_1d_f
-  end interface
+  end interface mscohere
 
   interface xcor
      module procedure xcor_1d, d_xcor_lda, d_xcor_2d
-  end interface
+  end interface xcor
 
   interface unwrap_phase
      module procedure unwrap_phase_f, unwrap_phase_d
-  end interface
+  end interface unwrap_phase
 
 contains
 

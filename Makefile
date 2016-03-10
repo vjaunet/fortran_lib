@@ -23,7 +23,7 @@ CC = ifort -O2 $(IPATH)
 CC += $(OPT_para)
 CC += $(OPT_OMP)
 
-ALL:spectral pod spectralpod stat interpol tecplot qsort piv_data
+ALL:spectral pod spectralpod stat interpol tecplot qsort piv_data press_data
 
 debug: CC += $(Debug)
 debug: ALL
@@ -52,11 +52,16 @@ spectralpod:spectral pod lib_spectralpod.mod
 lib_spectralpod.mod:SOURCE/lib_spectralPOD.f90
 	$(CC) -c $^ $(LIBS);
 
-qsort:SOURCE/qsort.f90
+qsort:qsort_c.mod
+qsort_c.mod:SOURCE/qsort_c.f90
 	$(CC) -c $^ $(LIBS);
 
 piv_data:stat pod qsort lib_piv_data.mod
 lib_piv_data.mod:SOURCE/lib_piv_data.f90
+	$(CC) -c $^ $(LIBS);
+
+press_data:lib_press_data.mod
+lib_press_data.mod:SOURCE/lib_press_data.f90
 	$(CC) -c $^ $(LIBS);
 
 
@@ -67,8 +72,9 @@ install:
 	ar rc libpod.a lib_pod.o
 	ar rc libspectralpod.a lib_spectralPOD.o lib_spectral.o
 	ar rc libpivdata.a \
-	lib_piv_data.o lib_pod.o lib_stat.o qsort.o
+	lib_piv_data.o lib_pod.o lib_stat.o qsort_c.o
 	ar rc libspectral.a lib_spectral.o
+	ar rc libpressdata.a lib_press_data.o
 	cp *.mod MOD/.
 	mv *.a LIB/.
 

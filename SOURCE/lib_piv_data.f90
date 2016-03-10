@@ -315,7 +315,8 @@ end subroutine piv_average
                datapiv.ncomponent,datapiv.nsamples,&
                datapiv.dx, datapiv.dy,&
                datapiv.x0, datapiv.y0,&
-               datapiv.pixel_step,datapiv.fs,&
+               datapiv.pixel_step,&
+               datapiv.fs,&
                datapiv.z_pos
 
           n1 = datapiv.nx
@@ -335,6 +336,8 @@ end subroutine piv_average
 
        !read 500 comment characters
        read(110)datapiv.comments
+
+       call datapiv.print_info()
 
        !read velocity samples
        allocate(datapiv.u(n1,n2,datapiv.ncomponent,&
