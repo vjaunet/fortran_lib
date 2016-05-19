@@ -176,6 +176,8 @@ contains
        w(:) = 1.d0
     end if
 
+    call d_average_1d_1c(var,moy,w)
+
     rms = 0.d0
     sumw = sum(w(:))
     if (sumw /= 0.d0) then

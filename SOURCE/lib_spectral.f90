@@ -240,7 +240,6 @@ contains
     type(psd_param)                             ::def_param
     !----------------------------------------------------
 
-
     if (present(param)) then
        def_param = param
     end if
@@ -600,6 +599,7 @@ contains
     ic = 0
     is_deb = 1
     is_fin = def_param.nfft
+
 
     !start the psd processing
     do while(is_fin.le.nn)

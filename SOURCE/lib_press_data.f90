@@ -27,6 +27,7 @@ MODULE LIB_PRESS_DATA
      procedure  :: read_bin => press_io_read
      procedure  :: write_bin => press_io_write
      procedure  :: print_info => press_info
+     procedure  :: destroy => press_destroy
 
   end type PRESSdata
 
@@ -64,6 +65,16 @@ contains
 
   end subroutine ccor
 
+  subroutine press_destroy(this)
+    class(PRESSdata)              ::this
+    !---------------------------------------
+
+
+    if (allocated(this.p)) deallocate(this.p)
+    if (allocated(this.x)) deallocate(this.x)
+
+  end subroutine press_destroy
+
   subroutine press_io_read(p,ifile)
     class(PRESSdata)              ::p
     character(len=*)              ::ifile
@@ -83,6 +94,10 @@ contains
     if (p.version==cur_version) then
        read(fid)p.nsensors,p.nsamples,p.Fs
        read(fid)p.comments
+
+       if (.not.allocated(p.p)) allocate(p.p(p.nsamples,p.nsensors))
+       if (.not.allocated(p.x)) allocate(p.x(p.nsensors,ndim))
+
        read(fid)p.x
        read(fid)p.p
     else
