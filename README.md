@@ -20,4 +20,4 @@ mylib has to be raplaced with one the following librairy names :
 - interp
   a interpolation module containing 1d and 2 routines
 
-TOTO
+- some more need to be described here
