@@ -6,8 +6,10 @@ module lib_piv_data
   !
   !
   !
-  !            PIV data container and useful routines
+  !  PIV data container and useful routines
   !
+  !*  author : Vincent Jaunet
+  !*  License: GPL v3.0
   !
   !
   !

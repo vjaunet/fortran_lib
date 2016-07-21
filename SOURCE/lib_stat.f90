@@ -9,7 +9,7 @@ module lib_stat
   !*  author : Vincent Jaunet
   !*  date   : 24-03-2014
   !*  License: MIT
-  !*  contact: v.jaunet@gmail.com
+  !*  contact: vincent[dot]jaunet[at]gmail[dot]com
   !*
   !!===========================================================
   integer(kind=8), private ::i,j,k,ic,in,nn,nc,ii,nx,ny

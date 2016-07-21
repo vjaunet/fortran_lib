@@ -4,6 +4,8 @@ MODULE LIB_PRESS_DATA
   !=========================================================
   !
   ! Kulite pressure routines and container
+  !*  author : Vincent Jaunet
+  !*  License: GPL v3.0
   !
   !=========================================================
 

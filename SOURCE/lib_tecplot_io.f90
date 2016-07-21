@@ -6,7 +6,7 @@ module lib_tecplot_IO
   !*
   !*  author : Vincent Jaunet
   !*  date   : 24-03-2014
-  !*  License: MIT
+  !*  License: GPL v3.0
   !*
   !* The module contains several routines and an
   !* extended type "filetype".
