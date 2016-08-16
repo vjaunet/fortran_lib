@@ -337,8 +337,6 @@ end subroutine piv_average
        !read 500 comment characters
        read(110)datapiv.comments
 
-       call datapiv.print_info()
-
        !read velocity samples
        allocate(datapiv.u(n1,n2,datapiv.ncomponent,&
             datapiv.nsamples))
