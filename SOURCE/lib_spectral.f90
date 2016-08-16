@@ -9,8 +9,8 @@ module lib_spectral
   !*
   !*       author : Vincent Jaunet
   !*       date   : 11-06-2014
-  !*
-  !*       contact: v.jaunet@gmail.com
+  !*       license: GPL v3.0
+  !*       contact: vincent[dot]jaunet[at]gmail[dot]com
   !*-------------------------------------------------------------------
   !*
   !* Requires: fftw3 to be intalled and linked during compilation

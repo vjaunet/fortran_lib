@@ -4,6 +4,8 @@ MODULE LIB_PRESS_DATA
   !=========================================================
   !
   ! Kulite pressure routines and container
+  !*  author : Vincent Jaunet
+  !*  License: GPL v3.0
   !
   !=========================================================
 
@@ -92,7 +94,11 @@ contains
     open(unit=fid,file=trim(ifile),action='read',access='stream',status='old')
     read(fid)p.version
     if (p.version==cur_version) then
+<<<<<<< HEAD
        read(fid)p.nsensors,p.nsamples,p.Fs
+=======
+       read(fid)p.nsensors,p.nsamples,p.Fs,p.Pa
+>>>>>>> b8e6bcaa7a21208163788d5d7a30a1fa9b2cf1e8
        read(fid)p.comments
 
        if (.not.allocated(p.p)) allocate(p.p(p.nsamples,p.nsensors))
@@ -117,7 +123,11 @@ contains
 
     open(unit=fid, access='stream',file=trim(ofile),status='unknown')
     write(fid)cur_version
+<<<<<<< HEAD
     write(fid)p.nsensors,p.nsamples,p.Fs
+=======
+    write(fid)p.nsensors,p.nsamples,p.Fs,p.Pa
+>>>>>>> b8e6bcaa7a21208163788d5d7a30a1fa9b2cf1e8
     write(fid)p.comments
     write(fid)p.x
     write(fid)p.p

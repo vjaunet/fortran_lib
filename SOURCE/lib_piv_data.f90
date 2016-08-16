@@ -5,9 +5,10 @@ module lib_piv_data
   !
   !
   !
+  !  PIV data container and useful routines
   !
-  !            PIV data container and useful routines
-  !
+  !*  author : Vincent Jaunet
+  !*  License: GPL v3.0
   !
   !
   !
@@ -337,6 +338,11 @@ end subroutine piv_average
        !read 500 comment characters
        read(110)datapiv.comments
 
+<<<<<<< HEAD
+=======
+       call datapiv.print_info()
+
+>>>>>>> b8e6bcaa7a21208163788d5d7a30a1fa9b2cf1e8
        !read velocity samples
        allocate(datapiv.u(n1,n2,datapiv.ncomponent,&
             datapiv.nsamples))

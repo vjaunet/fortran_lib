@@ -8,8 +8,8 @@ module lib_interpol
   !*
   !*  author : Vincent Jaunet
   !*  date   : 24-03-2014
-  !*  License: MIT
-  !*  contact: v.jaunet@gmail.com
+  !*  License: GPL v3
+  !*  contact: vincent[dot]jaunet[at]hotmail[dot]fr
   !*
   !*
   !=================Specification=============================

@@ -3,7 +3,8 @@ module lib_spectralpod
   !
   !
   ! contains POD routines
-  !
+  !*  author : Vincent Jaunet
+  !*  License: GPL v3.0
   !
   !
   !
