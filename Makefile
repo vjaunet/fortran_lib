@@ -10,10 +10,10 @@ OBJ=$(SRC:.f90=.mod)
 
 #option de vectorisation et parallelisation:
 # OPT_para= -vec-report0 -parallel -par-report0
-OPT_OMP= -openmp
+OPT_OMP= -fopenmp
 
 #option de debugage :
-Debug= -traceback -CB -warn alignment -ftrapuv -mp1
+Debug= -Wall
 
 IPATH=-I./ -I/usr/local/Cellar/fftw/3.3.5/include
 LPATH=-L./
@@ -75,6 +75,8 @@ install:
 	lib_piv_data.o lib_pod.o lib_stat.o qsort_c.o
 	ar rc libspectral.a lib_spectral.o
 	ar rc libpressdata.a lib_press_data.o
+	mkdir -p MOD
+	mkdir -p LIB
 	cp *.mod MOD/.
 	mv *.a LIB/.
 
