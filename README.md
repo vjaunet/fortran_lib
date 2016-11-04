@@ -1,6 +1,8 @@
 Fortran Librairies
 ------------------
 
+Same as fortran_lib but ported to gfortran
+
 Installation :
 make
 make install
@@ -27,4 +29,3 @@ mylib has to be raplaced with one the following librairy names :
 - even more to be described
 
 TODO : put some examples, do a real wiki
-
