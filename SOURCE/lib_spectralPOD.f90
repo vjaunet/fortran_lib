@@ -49,9 +49,9 @@ contains
     call makepod_spectral_scalar(datapod,r,u,param_psd)
 
     !fill in f
-    do if=1,param_psd.nfft
-       f(if) = param_psd.fe*&
-            dble(if-param_psd.nfft/2-1)/dble(param_psd.nfft)
+    do if=1,param_psd%nfft
+       f(if) = param_psd%fe*&
+            dble(if-param_psd%nfft/2-1)/dble(param_psd%nfft)
     end do
 
     return
@@ -70,9 +70,9 @@ contains
     call makepod_spectral_vec(datapod,r,u,param_psd)
 
     !fill in f
-    do if=1,param_psd.nfft
-       f(if) = param_psd.fe*&
-            dble(if-param_psd.nfft/2-1)/dble(param_psd.nfft)
+    do if=1,param_psd%nfft
+       f(if) = param_psd%fe*&
+            dble(if-param_psd%nfft/2-1)/dble(param_psd%nfft)
     end do
 
     return
@@ -107,22 +107,22 @@ contains
     nr=size(u,1)
 
     select type (u)
-    type is (real*4)
+    type is (real(kind=4))
        cplx=.false.
        allocate(ur4(size(u,1), size(u,2)))
        ur4 = u
-       nf=param_psd.nfft/2+1
+       nf=param_psd%nfft/2+1
     type is (complex)
        cplx=.true.
        allocate(uc8(size(u,1), size(u,2)))
        uc8 = u
-       nf=param_psd.nfft
+       nf=param_psd%nfft
     end select
 
-    allocate(datapod.lambda(nr,nf))
+    allocate(datapod%lambda(nr,nf))
     allocate(eigenval(nr))
-    allocate(datapod.phi(nr,nr,nf))
-    allocate(datapod.phiEn(nr,nr,nf))
+    allocate(datapod%phi(nr,nr,nf))
+    allocate(datapod%phiEn(nr,nr,nf))
 
     ! computing the cross_spectral matrix crossPSD
     !   --> XPSD(sqrt(r1)*U(r1),sqrt(r2)*U(r2))
@@ -165,11 +165,11 @@ contains
        !Gamard et al JFM 2004
        do imod=1,nr
           !sorting lambda/phi in decreasing order
-          datapod.lambda(imod,if) = eigenval(nr-imod+1)
+          datapod%lambda(imod,if) = eigenval(nr-imod+1)
 
-          datapod.phi(2:nr,imod,if) = sqrt(datapod.lambda(imod,if))* &
+          datapod%phi(2:nr,imod,if) = sqrt(datapod%lambda(imod,if))* &
                crosspsd(2:nr,nr-imod+1,if)/sqrt(r(2:nr))
-          datapod.phiEn(:,imod,if) = abs(datapod.phi(:,imod,if))**2
+          datapod%phiEn(:,imod,if) = abs(datapod%phi(:,imod,if))**2
        end do
     end do
 
@@ -207,22 +207,22 @@ contains
     nc=size(u,3)
 
     select type (u)
-    type is (real*4)
+    type is (real(kind=4))
        cplx=.false.
        allocate(ur4(size(u,1), size(u,2), size(u,3)))
        ur4 = u
-       nf=param_psd.nfft/2+1
-    type is (complex*8)
+       nf=param_psd%nfft/2+1
+    type is (complex(kind=8))
        cplx=.true.
        allocate(uc8(size(u,1), size(u,2), size(u,3)))
        uc8 = u
-       nf=param_psd.nfft
+       nf=param_psd%nfft
     end select
 
-    allocate(datapod.lambda(nc*nr,nf))
+    allocate(datapod%lambda(nc*nr,nf))
     allocate(eigenval(nc*nr))
-    allocate(datapod.phi(nc*nr,nc*nr,nf))
-    allocate(datapod.phiEn(nc*nr,nc*nr,nf))
+    allocate(datapod%phi(nc*nr,nc*nr,nf))
+    allocate(datapod%phiEn(nc*nr,nc*nr,nf))
 
     ! computing the cross_spectral matrix crossPSD
     !   --> XPSD(sqrt(r1)*U(r1),sqrt(r2)*U(r2))
@@ -269,10 +269,10 @@ contains
        !Gamard et al JFM 2004
        do imod=1,nc*nr
           !sorting lambda/phi in decreasing order
-          datapod.lambda(imod,i) = eigenval(nr-imod+1)
-          datapod.phi(:,imod,i) = sqrt(datapod.lambda(imod,i))* &
+          datapod%lambda(imod,i) = eigenval(nr-imod+1)
+          datapod%phi(:,imod,i) = sqrt(datapod%lambda(imod,i))* &
                crosspsd(:,nr-imod+1,i)/sqrt(r(:))
-          datapod.phiEn(:,imod,i) = abs(datapod.phi(:,imod,i))**2
+          datapod%phiEn(:,imod,i) = abs(datapod%phi(:,imod,i))**2
        end do
     end do
 

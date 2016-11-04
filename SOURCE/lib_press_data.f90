@@ -39,9 +39,9 @@ contains
   subroutine press_info(p)
     class(PRESSdata)              ::p
 
-    write(06,*)"Numbers of sensors : ",P.nsensors
-    write(06,*)"Numbers of samples : ",P.nsamples
-    write(06,*)"Sampling frequency : ",P.Fs
+    write(06,*)"Numbers of sensors : ",P%nsensors
+    write(06,*)"Numbers of samples : ",P%nsamples
+    write(06,*)"Sampling frequency : ",P%Fs
 
     return
   end subroutine press_info
@@ -52,17 +52,17 @@ contains
     real                          ::Fs,Pa
     character(len=*),optional     ::com
     !---------------------------------------
-    p.version = cur_version
-    p.nsamples = nsamples
-    p.nsensors = nsensors
-    allocate(p.p(nsamples,nsensors))
-    allocate(p.x(nsensors,ndim))
+    p%version = cur_version
+    p%nsamples = nsamples
+    p%nsensors = nsensors
+    allocate(p%p(nsamples,nsensors))
+    allocate(p%x(nsensors,ndim))
 
-    p.Fs=Fs
-    p.Pa=Pa
+    p%Fs=Fs
+    p%Pa=Pa
 
     if (present(com)) then
-       p.comments=trim(com)
+       p%comments=trim(com)
     end if
 
   end subroutine ccor
@@ -72,8 +72,8 @@ contains
     !---------------------------------------
 
 
-    if (allocated(this.p)) deallocate(this.p)
-    if (allocated(this.x)) deallocate(this.x)
+    if (allocated(this%p)) deallocate(this%p)
+    if (allocated(this%x)) deallocate(this%x)
 
   end subroutine press_destroy
 
@@ -92,20 +92,17 @@ contains
 
     !file exists let's read it
     open(unit=fid,file=trim(ifile),action='read',access='stream',status='old')
-    read(fid)p.version
-    if (p.version==cur_version) then
-<<<<<<< HEAD
-       read(fid)p.nsensors,p.nsamples,p.Fs
-=======
-       read(fid)p.nsensors,p.nsamples,p.Fs,p.Pa
->>>>>>> b8e6bcaa7a21208163788d5d7a30a1fa9b2cf1e8
-       read(fid)p.comments
+    read(fid)p%version
+    if (p%version==cur_version) then
+       read(fid)p%nsensors,p%nsamples,p%Fs
+       read(fid)p%nsensors,p%nsamples,p%Fs,p%Pa
+       read(fid)p%comments
 
-       if (.not.allocated(p.p)) allocate(p.p(p.nsamples,p.nsensors))
-       if (.not.allocated(p.x)) allocate(p.x(p.nsensors,ndim))
+       if (.not.allocated(p%p)) allocate(p%p(p%nsamples,p%nsensors))
+       if (.not.allocated(p%x)) allocate(p%x(p%nsensors,ndim))
 
-       read(fid)p.x
-       read(fid)p.p
+       read(fid)p%x
+       read(fid)p%p
     else
        write(06,'(a,a)')'PRESSdata error : version unknown'
        return
@@ -123,14 +120,10 @@ contains
 
     open(unit=fid, access='stream',file=trim(ofile),status='unknown')
     write(fid)cur_version
-<<<<<<< HEAD
-    write(fid)p.nsensors,p.nsamples,p.Fs
-=======
-    write(fid)p.nsensors,p.nsamples,p.Fs,p.Pa
->>>>>>> b8e6bcaa7a21208163788d5d7a30a1fa9b2cf1e8
-    write(fid)p.comments
-    write(fid)p.x
-    write(fid)p.p
+    write(fid)p%nsensors,p%nsamples,p%Fs,p%Pa
+    write(fid)p%comments
+    write(fid)p%x
+    write(fid)p%p
     close(fid)
 
     return

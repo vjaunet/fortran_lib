@@ -1,17 +1,26 @@
 Fortran Librairies
-------------------
+===============================
 
-Same as fortran_lib but ported to gfortran
+News :
+------
+Since Intel stopped there non-commercial license, the librairy is ported to the GNU fortran compiler gfortran.
+The intel compiler should still be supproted.
+The library compiles with gfortran from Homebrew gcc 6.1.0_1. GCC 7.x not yet tested
 
 Installation :
+--------------
 make
 make install
 
+Usage :
+-------
 In the program make file include the installation path "IPATH" as the following:
-ifort -IIPATH/MOD
+CF -IIPATH/MOD
 
 To call a librairy, compile with the following options :
-ifort -IIPATH/MOD -c myprog.f90 -o exec -LIPATH/LIB -lmylib
+CF -IIPATH/MOD -c myprog.f90 -o exec -LIPATH/LIB -lmylib
+
+where CF is your favorite fortran compiler.
 
 and "use module_name" has to be place before the implicit none of the main
 program file.

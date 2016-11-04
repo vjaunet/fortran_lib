@@ -103,80 +103,80 @@ contains
     real(kind=8)    ,dimension(:,:)   ,intent(out)  ::yint
     !-------------------------------------------------------------
 
-    b.nx = size(x,1)
-    b.ny = size(x,2)
-    b.nxint = size(xint,1)
-    b.nyint = size(xint,2)
+    b%nx = size(x,1)
+    b%ny = size(x,2)
+    b%nxint = size(xint,1)
+    b%nyint = size(xint,2)
 
 
-    if (.not.allocated(b.a))    allocate(b.A(16,16));
-    if (.not.allocated(b.B))    allocate(b.B(16))
-    if (.not.allocated(b.alpha))allocate(b.alpha(16))
-    if (.not.allocated(b.dist)) allocate(b.dist(b.nx,b.ny))
-    if (.not.allocated(b.dy))   allocate(b.dy(b.nx,b.ny,3))
+    if (.not.allocated(b%a))    allocate(b%A(16,16));
+    if (.not.allocated(b%B))    allocate(b%B(16))
+    if (.not.allocated(b%alpha))allocate(b%alpha(16))
+    if (.not.allocated(b%dist)) allocate(b%dist(b%nx,b%ny))
+    if (.not.allocated(b%dy))   allocate(b%dy(b%nx,b%ny,3))
 
-    call fillA(b.A)
+    call fillA(b%A)
 
     !compute gradients along x1 : dy/dx1
-    call diff(dble(y),b.nx,b.ny,b.dy(:,:,1),'X')
+    call diff(dble(y),b%nx,b%ny,b%dy(:,:,1),'X')
     !compute gradients along x2 ; dy/dx2
-    call diff(dble(y),b.nx,b.ny,b.dy(:,:,2),'Y')
+    call diff(dble(y),b%nx,b%ny,b%dy(:,:,2),'Y')
     !computes cros gradients : d(dy/dx)/dy = dy/dx1dx2
-    call diff(b.dy(:,:,1),b.nx,b.ny,b.dy(:,:,3),'Y')
+    call diff(b%dy(:,:,1),b%nx,b%ny,b%dy(:,:,3),'Y')
 
-    do iintm=1,b.nxint
-       do jintm=1,b.nyint
+    do iintm=1,b%nxint
+       do jintm=1,b%nyint
 
           !computes distance between POI and all data
-          b.dist = 0.d0
-          do im=1,b.nx
-             do jm=1,b.ny
+          b%dist = 0.d0
+          do im=1,b%nx
+             do jm=1,b%ny
 
                 do icm=1,2
-                   b.dist(i,j) = b.dist(i,j) + &
+                   b%dist(i,j) = b%dist(i,j) + &
                         (x(i,j,ic)-xint(iint,jint,ic))**2
                 end do
-                b.dist(im,jm) = dsqrt(b.dist(im,jm))
+                b%dist(im,jm) = dsqrt(b%dist(im,jm))
 
              end do
           end do
 
           !localization of the surrounding 4 interpolant points
-          b.itmp = minloc(b.dist)
-          if (minval(b.dist) ==0.d0) then
+          b%itmp = minloc(b%dist)
+          if (minval(b%dist) ==0.d0) then
              !the interpolated point is loacated on an interpolant
              !get the exact value
-             yint(iintm,jintm) = y(b.itmp(1),b.itmp(2))
+             yint(iintm,jintm) = y(b%itmp(1),b%itmp(2))
 
           else
 
              !get the values of the surrounding interpolants
-             call get_4neighbors(b.itmp,dble(xint(iint,jint,:)),&
-                  dble(x),dble(y),b.dy,b.xtmp,b.ytmp,b.dytmp)
+             call get_4neighbors(b%itmp,dble(xint(iint,jint,:)),&
+                  dble(x),dble(y),b%dy,b%xtmp,b%ytmp,b%dytmp)
 
              !get the bicubic interpolation coefficient alpha
-             call fillB(b.B,b.ytmp,b.dytmp(:,:,1),b.dytmp(:,:,2),b.dytmp(:,:,3))
-             b.alpha = 0.d0
+             call fillB(b%B,b%ytmp,b%dytmp(:,:,1),b%dytmp(:,:,2),b%dytmp(:,:,3))
+             b%alpha = 0.d0
              do im=1,16
                 do jm=1,16
-                   b.alpha(i) = b.alpha(i) + b.A(i,j)*b.B(j)
+                   b%alpha(i) = b%alpha(i) + b%A(i,j)*b%B(j)
                 end do
              end do
 
              !get distance to compute the interpolation
-             b.gdx = xint(iintm,jintm,1) - b.xtmp(1,1,1)
-             b.gdx = b.gdx/(b.xtmp(2,2,1)    - b.xtmp(1,1,1))
-             b.gdy = xint(iintm,jintm,2) - b.xtmp(1,1,2)
-             b.gdy = b.gdy/(b.xtmp(2,2,2)    - b.xtmp(1,1,2))
+             b%gdx = xint(iintm,jintm,1) - b%xtmp(1,1,1)
+             b%gdx = b%gdx/(b%xtmp(2,2,1)    - b%xtmp(1,1,1))
+             b%gdy = xint(iintm,jintm,2) - b%xtmp(1,1,2)
+             b%gdy = b%gdy/(b%xtmp(2,2,2)    - b%xtmp(1,1,2))
 
              !Interpolate
              yint(iintm,jintm) = 0.d0
-             b.ii = 1
+             b%ii = 1
              do jm=0,3
                 do im=0,3
                    yint(iintm,jintm) = yint(iintm,jintm) + &
-                        b.alpha(b.ii) * b.gdx**im * b.gdy**jm
-                   b.ii=b.ii+1
+                        b%alpha(b%ii) * b%gdx**im * b%gdy**jm
+                   b%ii=b%ii+1
                 end do
              end do
 
@@ -193,11 +193,11 @@ contains
        end do !end loop on interpolated data
     end do !end loop on interpolated data
 
-    deallocate(b.dy)
-    deallocate(b.A)
-    deallocate(b.B)
-    deallocate(b.alpha)
-    deallocate(b.dist)
+    deallocate(b%dy)
+    deallocate(b%A)
+    deallocate(b%B)
+    deallocate(b%alpha)
+    deallocate(b%dist)
 
   end subroutine d_bicubic_interp_2d
 
@@ -210,79 +210,79 @@ contains
     real(kind=4)    ,dimension(:,:,:) ,intent(in)   ::xint
     real(kind=4)    ,dimension(:,:)   ,intent(out)  ::yint
     !-----------------------------------------------------------
-    b.nx = size(x,1)
-    b.ny = size(x,2)
-    b.nxint = size(xint,1)
-    b.nyint = size(xint,2)
+    b%nx = size(x,1)
+    b%ny = size(x,2)
+    b%nxint = size(xint,1)
+    b%nyint = size(xint,2)
 
-    if (.not.allocated(b.a))    allocate(b.A(16,16));
-    if (.not.allocated(b.B))    allocate(b.B(16))
-    if (.not.allocated(b.alpha))allocate(b.alpha(16))
-    if (.not.allocated(b.dist)) allocate(b.dist(b.nx,b.ny))
-    if (.not.allocated(b.dy))   allocate(b.dy(b.nx,b.ny,3))
+    if (.not.allocated(b%a))    allocate(b%A(16,16));
+    if (.not.allocated(b%B))    allocate(b%B(16))
+    if (.not.allocated(b%alpha))allocate(b%alpha(16))
+    if (.not.allocated(b%dist)) allocate(b%dist(b%nx,b%ny))
+    if (.not.allocated(b%dy))   allocate(b%dy(b%nx,b%ny,3))
 
-    call fillA(b.A)
+    call fillA(b%A)
 
     !compute gradients along x1 : dy/dx1
-    call diff(dble(y),b.nx,b.ny,b.dy(:,:,1),'X')
+    call diff(dble(y),b%nx,b%ny,b%dy(:,:,1),'X')
     !compute gradients along x2 ; dy/dx2
-    call diff(dble(y),b.nx,b.ny,b.dy(:,:,2),'Y')
+    call diff(dble(y),b%nx,b%ny,b%dy(:,:,2),'Y')
     !computes cros gradients : d(dy/dx)/dy = dy/dx1dx2
-    call diff(b.dy(:,:,1),b.nx,b.ny,b.dy(:,:,3),'Y')
+    call diff(b%dy(:,:,1),b%nx,b%ny,b%dy(:,:,3),'Y')
 
-    do iintm=1,b.nxint
-       do jintm=1,b.nyint
+    do iintm=1,b%nxint
+       do jintm=1,b%nyint
 
           !computes distance between POI and all data
-          b.dist = 0.d0
-          do im=1,b.nx
-             do jm=1,b.ny
+          b%dist = 0.d0
+          do im=1,b%nx
+             do jm=1,b%ny
 
                 do icm=1,2
-                   b.dist(im,jm) = b.dist(im,jm) + &
+                   b%dist(im,jm) = b%dist(im,jm) + &
                         (x(im,jm,icm)-xint(iintm,jintm,icm))**2
                 end do
-                b.dist(im,jm) = dsqrt(b.dist(im,jm))
+                b%dist(im,jm) = dsqrt(b%dist(im,jm))
 
              end do
           end do
 
           !localization of the surrounding 4 interpolant points
-          b.itmp = minloc(b.dist)
-          if (minval(b.dist) == 0.d0) then
+          b%itmp = minloc(b%dist)
+          if (minval(b%dist) == 0.d0) then
              !the interpolated point is loacated on an interpolant
              !get the exact value
-             yint(iintm,jintm) = y(b.itmp(1),b.itmp(2))
+             yint(iintm,jintm) = y(b%itmp(1),b%itmp(2))
 
           else
 
              !get the values of the surrounding interpolants
-             call get_4neighbors(b.itmp,dble(xint(iintm,jintm,:)),&
-                  dble(x),dble(y),b.dy,b.xtmp,b.ytmp,b.dytmp)
+             call get_4neighbors(b%itmp,dble(xint(iintm,jintm,:)),&
+                  dble(x),dble(y),b%dy,b%xtmp,b%ytmp,b%dytmp)
 
              !get the bicubic interpolation coefficient alpha
-             call fillB(b.B,b.ytmp,b.dytmp(:,:,1),b.dytmp(:,:,2),b.dytmp(:,:,3))
-             b.alpha = 0.d0
+             call fillB(b%B,b%ytmp,b%dytmp(:,:,1),b%dytmp(:,:,2),b%dytmp(:,:,3))
+             b%alpha = 0.d0
              do im=1,16
                 do jm=1,16
-                   b.alpha(im) = b.alpha(im) + b.A(im,jm)*b.B(jm)
+                   b%alpha(im) = b%alpha(im) + b%A(im,jm)*b%B(jm)
                 end do
              end do
 
              !get distance to compute the interpolation
-             b.gdx = xint(iintm,jintm,1) - b.xtmp(1,1,1)
-             b.gdx = b.gdx/(b.xtmp(2,2,1)    - b.xtmp(1,1,1))
-             b.gdy = xint(iintm,jintm,2) - b.xtmp(1,1,2)
-             b.gdy = b.gdy/(b.xtmp(2,2,2)    - b.xtmp(1,1,2))
+             b%gdx = xint(iintm,jintm,1) - b%xtmp(1,1,1)
+             b%gdx = b%gdx/(b%xtmp(2,2,1)    - b%xtmp(1,1,1))
+             b%gdy = xint(iintm,jintm,2) - b%xtmp(1,1,2)
+             b%gdy = b%gdy/(b%xtmp(2,2,2)    - b%xtmp(1,1,2))
 
              !Interpolate
              yint(iintm,jintm) = 0.d0
-             b.ii = 1
+             b%ii = 1
              do jm=0,3
                 do im=0,3
                    yint(iintm,jintm) = yint(iintm,jintm) + &
-                        b.alpha(b.ii) * b.gdx**im * b.gdy**jm
-                   b.ii=b.ii+1
+                        b%alpha(b%ii) * b%gdx**im * b%gdy**jm
+                   b%ii=b%ii+1
                 end do
              end do
 
@@ -299,11 +299,11 @@ contains
        end do !end loop on interpolated data
     end do !end loop on interpolated data
 
-    deallocate(b.dy)
-    deallocate(b.A)
-    deallocate(b.B)
-    deallocate(b.alpha)
-    deallocate(b.dist)
+    deallocate(b%dy)
+    deallocate(b%A)
+    deallocate(b%B)
+    deallocate(b%alpha)
+    deallocate(b%dist)
 
   end subroutine f_bicubic_interp_2d
 
@@ -342,7 +342,7 @@ contains
     !     On suppose les tableaux x et xint sont ordonnes
     if(nbpint.eq.1) then
        sens=1
-    else if(sign(1.0,x(2)-x(1)).eq.sign(1.0,xint(2)-xint(1))) then
+    else if(sign(1.d0,x(2)-x(1)) .eq. sign(1.d0,xint(2)-xint(1))) then
        sens=1
     else
        sens=-1
