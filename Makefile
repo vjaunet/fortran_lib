@@ -15,7 +15,7 @@ OPT_OMP= -openmp
 #option de debugage :
 Debug= -traceback -CB -warn alignment -ftrapuv -mp1
 
-IPATH=-I./
+IPATH=-I./ -I/usr/local/Cellar/fftw/3.3.5/include
 LPATH=-L./
 LIBS= -lfftw3 -llapack -lstat -lspectral -lpod $(LPATH)
 
