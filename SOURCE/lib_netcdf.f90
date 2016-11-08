@@ -6,6 +6,11 @@ MODULE lib_netcdf
   !
   !        netCDF interface for handling data
   !
+  ! Description:
+  !         wrapper to  netcdf fortran 90 routines to handle all the hard work
+  !         simple to the aboc routines will open, read and store data
+  !         in dedicated objects.
+  !
   ! author :
   !        vincent jaunet
   !
