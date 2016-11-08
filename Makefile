@@ -15,7 +15,7 @@ OPT_OMP= -fopenmp
 #option de debugage :
 Debug= -Wall
 
-IPATH=-I./ -I/usr/local/Cellar/fftw/3.3.5/include
+IPATH=-I./ -I/usr/local/include
 LPATH=-L./
 LIBS= -lfftw3 -llapack -lstat -lspectral -lpod $(LPATH)
 
@@ -23,10 +23,14 @@ CC = gfortran -O2 $(IPATH)
 CC += $(OPT_para)
 CC += $(OPT_OMP)
 
-ALL:spectral pod spectralpod stat interpol tecplot qsort piv_data press_data
+ALL:spectral pod spectralpod stat interpol tecplot qsort piv_data press_data netcdf
 
 debug: CC += $(Debug)
 debug: ALL
+
+netcdf:lib_netcdf.mod
+lib_netcdf.mod:SOURCE/lib_netcdf.f90
+	$(CC) -c $^ -lnetcdff -lnetcdff
 
 spectral:lib_spectral.mod
 lib_spectral.mod:SOURCE/lib_spectral.f90
@@ -66,6 +70,7 @@ lib_press_data.mod:SOURCE/lib_press_data.f90
 
 
 install:
+	ar rc liblibnetcdf.a lib_netcdf.o
 	ar rc libtecplot.a lib_tecplot_io.o
 	ar rc libinterpol.a lib_interpol.o
 	ar rc libstat.a lib_stat.o
@@ -79,6 +84,7 @@ install:
 	mkdir -p LIB
 	cp *.mod MOD/.
 	mv *.a LIB/.
+#for file in $(ls MOD/*); do echo ln -s $(pwd)/$file /usr/local/include/$file; done
 
 clean:
 	rm -rf *.o *.mod *.a SOURCE/*~
