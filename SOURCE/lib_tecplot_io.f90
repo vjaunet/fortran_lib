@@ -16,6 +16,7 @@ module lib_tecplot_IO
   !* exitence, ID, variable names and titles
   !*
   !* Usage :
+  !===========================================================
 
   integer(kind=8), private ::i,j,k,ic,in,ix
 
@@ -726,8 +727,7 @@ contains
     nc=size(tab,3)
 
 !1664 format (<2*nc>(e15.8,2x))
-    write(fmt,'(i0)')2*nc
-    fmt=fmt//"(e15.8,2x)"
+    write(fmt,'(a,i0,a)')"(",2*nc,"(e15.8,2x))"
 
 1665 format (a,a,a,i0,a,i0)
 1666 format (a,a,i0,a,i0)
@@ -883,8 +883,7 @@ contains
     nc=size(tab,4)
 
     !1664 format (<2*nc>(e15.8,2x))
-    write(fmt,'(i0)')2*nc
-    fmt=fmt//"(e15.8,2x)"
+    write(fmt,'(a,i0,a)')"(",2*nc,"(e15.8,2x))"
 
 1665 format (a,a,a,i0,a,i0,a,i0)
 

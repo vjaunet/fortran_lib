@@ -2,16 +2,17 @@ module lib_piv_data
   implicit none
 
   !=================Specification=============================
-  !
-  !
-  !
-  !  PIV data container and useful routines
-  !
+  !*
+  !*
+  !*
+  !*  PIV data container and useful routines
+  !*
   !*  author : Vincent Jaunet
   !*  License: GPL v3.0
-  !
-  !
-  !
+  !*
+  !*  -11/2016 :
+  !*        v. jaunet : added support for netcdf data format
+  !*
   !===========================================================
 
   integer, private :: i,j,ic,is
@@ -52,6 +53,8 @@ module lib_piv_data
    contains
      procedure :: read_bin  => piv_io_read
      procedure :: write_bin => piv_io_write
+     procedure :: read_data  => piv_io_read
+     procedure :: write_data => piv_io_write
      procedure :: set_x     => piv_set_x
      procedure :: replace_outlier => piv_replace_outlier
      procedure :: detect_outlier => piv_detect_outlier
@@ -98,7 +101,7 @@ contains
        end do
 
     else
-       write(06,*)"piv_io_read : impossible to define the type of grid"
+       write(06,*)"piv_set_x : impossible to define the type of grid"
        STOP
     end if
 
@@ -226,7 +229,7 @@ contains
        end do
     end do
 
-end subroutine piv_average
+  end subroutine piv_average
 
   subroutine piv_rms(datapiv,Nmax)
     use lib_stat
@@ -292,7 +295,87 @@ end subroutine piv_average
   !*****************************************************************
 
 
-  subroutine piv_io_read(datapiv,filename)
+  subroutine piv_io_read(datapiv,filename,fmt)
+    class(PIVdata)                     ::datapiv
+    character(len=*)                   ::filename
+    character(len=*)   ,optional       ::fmt
+    !----------------------------------------------
+
+    if (present(fmt)) then
+       select case (fmt)
+       case ('bin')
+          call piv_io_read_bin(datapiv,filename)
+       case ('netCDF')
+          call piv_io_read_netcdf(datapiv,filename)
+       case default
+          STOP 'piv_io_read : unknom data format'
+       end select
+    else
+       call piv_io_read_bin(datapiv,filename)
+    end if
+
+  end subroutine piv_io_read
+
+  subroutine piv_io_read_netcdf(datapiv,filename)
+    use lib_netcdf
+    class(PIVdata)                     ::datapiv
+    type(netcdf_data)                  ::ncdfpiv
+    character(len=*)                   ::filename
+    logical                            ::file_exists
+
+    integer                            ::n1,n2,ic
+    !----------------------------------------------
+
+    !check existence of binary data file
+    inquire(file=trim(filename), EXIST=file_exists)
+    if (file_exists) then
+       call ncdfpiv%read_data(filename)
+    else
+       write(06,*) trim(filename)," doesn't exist..."
+       STOP
+    end if
+
+    !switch from netCDF to pivdata format
+    !------------------------------------
+    if (ncdfpiv%ndim == 1) &
+         STOP 'piv_io_read_netcdf : wrong number of dimensions in the piv file'
+
+    !beware netcdf data are column major mode (c++ style)
+    !that is why x and y are inverted
+    datapiv%nx = ncdfpiv%dimensions(2)%len
+    datapiv%ny = ncdfpiv%dimensions(1)%len
+    if (ncdfpiv%ndim == 3) then
+       datapiv%nsamples   = ncdfpiv%dimensions(3)%len
+       datapiv%fs         = 1.d0/(ncdfpiv%var(3)%data(2)-ncdfpiv%var(3)%data(1))
+    else
+       datapiv%nsamples   = 1
+    end if
+    datapiv%ncomponent = ncdfpiv%nvar-ncdfpiv%ndim
+    datapiv%ncgen = 0
+
+    !allocate memory
+    call piv_create(datapiv)
+
+    !set coordinates
+    datapiv%x0 = ncdfpiv%var(2)%data(1)
+    datapiv%y0 = ncdfpiv%var(1)%data(1)
+    datapiv%dx = ncdfpiv%var(2)%data(2)-ncdfpiv%var(1)%data(1)
+    datapiv%dy = ncdfpiv%var(1)%data(2)-ncdfpiv%var(2)%data(1)
+
+    call piv_set_x(datapiv)
+
+    !fill variable memory
+    do ic=1,datapiv%ncomponent
+       datapiv%u(:,:,ic,:)=reshape(ncdfpiv%var(ic+ncdfpiv%ndim)%data,&
+            (/datapiv%nx,datapiv%ny,datapiv%nsamples/))
+    end do
+
+    !free netcdf memory use
+    call ncdfpiv%destroy()
+
+  end subroutine piv_io_read_netcdf
+
+  subroutine piv_io_read_bin(datapiv,filename)
     class(PIVdata)                     ::datapiv
     character(len=*)                   ::filename
     logical                            ::file_exists
@@ -300,7 +383,7 @@ end subroutine piv_average
     integer                            ::n1,n2
     !----------------------------------------------
 
-    !check existence of binary data file
+    !check existence of binary data f<ile
     inquire(file=trim(filename), EXIST=file_exists)
     if (file_exists) then
 
@@ -325,6 +408,7 @@ end subroutine piv_average
 
        else
           write(06,*)"piv_io_read : impossible to define the type of grid"
+          write(06,*)"              be sure to define the correct data format"
           STOP
        end if
 
@@ -338,7 +422,7 @@ end subroutine piv_average
        !read 500 comment characters
        read(110)datapiv%comments
 
-       !read velocity samples
+       !read velocity samples<
        allocate(datapiv%u(n1,n2,datapiv%ncomponent,&
             datapiv%nsamples))
        read(110)datapiv%u
@@ -349,9 +433,30 @@ end subroutine piv_average
        STOP
     end if
 
-  end subroutine piv_io_read
+  end subroutine piv_io_read_bin
 
-  subroutine piv_io_write(datapiv,filename)
+  subroutine piv_io_write(datapiv,filename,fmt)
+    class(PIVdata)                     ::datapiv
+    character(len=*)                   ::filename
+    character(len=*)   ,optional       ::fmt
+    !----------------------------------------------
+
+    if (present(fmt)) then
+       select case (fmt)
+       case ('bin')
+          call piv_io_write_bin(datapiv,filename)
+          ! case ('netCDF')
+          !    call piv_io_write_netcdf(datapiv,filename)
+       case default
+          STOP 'piv_io_write : unknom data format'
+       end select
+    else
+       call piv_io_write_bin(datapiv,filename)
+    end if
+
+  end subroutine piv_io_write
+
+  subroutine piv_io_write_bin(datapiv,filename)
     class(PIVdata)                     ::datapiv
     character(len=*)                   ::filename
     logical                            ::file_exists
@@ -384,7 +489,67 @@ end subroutine piv_average
 
     close(110)
 
-  end subroutine piv_io_write
+  end subroutine piv_io_write_bin
+
+  subroutine piv_io_write_netcdf(datapiv,filename)
+    use lib_netcdf
+    class(PIVdata)                     ::datapiv
+    type(netcdf_data)                  ::ncdfpiv
+    character(len=*)                   ::filename
+    logical                            ::file_exists
+
+    integer                            ::n1,n2,ic
+    !----------------------------------------------
+
+    !switch from pivdata to netCDF format
+    !------------------------------------
+    if (datapiv%nsamples==1) then
+       call ncdfpiv%create((/datapiv%ny,datapiv%nx/),(/'y','x'/),&
+            datapiv%ncomponent,(/'u','v'/))
+    else
+       call ncdfpiv%create((/datapiv%ny,datapiv%nx,datapiv%nsamples/),(/'y','x','t'/),&
+            datapiv%ncomponent,(/'u','v'/))
+    end if
+
+    !!! REVERT ALL THE FOLLOWING PROCESS !!!
+
+
+    !beware netcdf data are column major mode (c++ style)
+    !that is why x and y are inverted
+    datapiv%nx = ncdfpiv%dimensions(2)%len
+    datapiv%ny = ncdfpiv%dimensions(1)%len
+    if (ncdfpiv%ndim == 3) then
+       datapiv%nsamples   = ncdfpiv%dimensions(3)%len
+       datapiv%fs         = 1.d0/(ncdfpiv%var(3)%data(2)-ncdfpiv%var(3)%data(1))
+    else
+       datapiv%nsamples   = 1
+    end if
+    datapiv%ncomponent = ncdfpiv%nvar-ncdfpiv%ndim
+    datapiv%ncgen = 0
+
+    !allocate memory
+    call piv_create(datapiv)
+
+    !set coordinates
+    datapiv%x0 = ncdfpiv%var(2)%data(1)
+    datapiv%y0 = ncdfpiv%var(1)%data(1)
+    datapiv%dx = ncdfpiv%var(2)%data(2)-ncdfpiv%var(1)%data(1)
+    datapiv%dy = ncdfpiv%var(1)%data(2)-ncdfpiv%var(2)%data(1)
+
+    call piv_set_x(datapiv)
+
+    !fill variable memory
+    do ic=1,datapiv%ncomponent
+       datapiv%u(:,:,ic,:)=reshape(ncdfpiv%var(ic+ncdfpiv%ndim)%data,&
+            (/datapiv%nx,datapiv%ny,datapiv%nsamples/))
+    end do
+
+    !free netcdf memory use
+    call ncdfpiv%destroy()
+
+  end subroutine piv_io_write_netcdf
+
+
 
   subroutine piv_destroy(datapiv)
     class(PIVdata)                     ::datapiv
@@ -413,7 +578,10 @@ end subroutine piv_average
           STOP "datapiv : can't allocate memory, a table size equals 0"
        end if
     end if
-    if (.not. allocated(datapiv%cgen)) allocate(datapiv%cgen(datapiv%ncgen))
+
+    if (.not. allocated(datapiv%cgen)) then
+       if ((datapiv%ncgen /= 0))  allocate(datapiv%cgen(datapiv%ncgen))
+    end if
 
   end subroutine piv_create
 
@@ -446,8 +614,8 @@ end subroutine piv_average
 
     if (datapiv%ncgen > 0) then
        write(06,'(a,10(f10.3,2x))')"  - Stagnation Conditions :",(datapiv%cgen(i),i=1,datapiv%ncgen)
-       else
-          write(06,'(a)') " No Stagnation condition stored"
+    else
+       write(06,'(a)') " No Stagnation condition stored"
     end if
 
   end subroutine piv_info

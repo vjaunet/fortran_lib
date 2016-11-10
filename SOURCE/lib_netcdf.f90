@@ -329,6 +329,7 @@ contains
     integer  ,dimension(this%ndim)   ::dim_id,dim_len
     integer  ,dimension(this%nvar)   ::var_id
     integer                          ::idim,ivar,trash
+    integer                          ::var_size
     integer  ,dimension(this%ndim)   ::start_,count_
     !-------------------------------------------
 
@@ -342,7 +343,7 @@ contains
        call check(nf90_def_dim(this%ncdf_id, &
             this%dimensions(idim)%name,&
             this%dimensions(idim)%len,&
-            dim_id(idim))) !beware that we are in column major mode
+            dim_id(idim)))
     end do
 
     !Define coordinate data variables
@@ -353,40 +354,25 @@ contains
     end do
 
     !Define the other data variable
+    !beware that we are in column major mode
     if (this%ndim >= 2) dim_id(1:2)=dim_id(2:1:-1)
     do ivar=this%ndim+1,this%nvar
        call check(nf90_def_var(this%ncdf_id,&
-            this%var(ivar)%name, NF90_DOUBLE, dim_id, var_id(ivar)))
+            this%var(ivar)%name, NF90_DOUBLE, &
+            dim_id, var_id(ivar)))
     end do
 
     call check(nf90_enddef(this%ncdf_id))
     !End Definitions----------------
 
     !Write Data---------------------
-
-    !--write coordinates
-    do idim=1,this%ndim
-       call check(nf90_put_var(this%ncdf_id,&
-            varid=var_id(idim),&
-            values=this%var(idim)%data,&
-            start=(/ 1 /), count=(/ this%dimensions(idim)%len /)))
-    end do
-
-    !--write data variables
-    start_ = 1
-    if (this%ndim>=2) then
-       count_(1) = this%dimensions(2)%len
-       count_(2) = this%dimensions(1)%len
-       count_(3:this%ndim) = this%dimensions(3:this%ndim)%len
-    else
-       count_(1) = this%dimensions(1)%len
-    end if
-
-    do ivar=this%ndim+1,this%nvar
+    do ivar=1,this%nvar
 
        call check(nf90_inquire_variable(this%ncdf_id,&
             varid=var_id(ivar),ndims=idim,dimids=dim_id))
 
+       start_=1
+       count_=this%dimensions(dim_id(1:this%ndim))%len
        call check(nf90_put_var(this%ncdf_id,&
             varid=var_id(ivar),&
             values=this%var(ivar)%data,&

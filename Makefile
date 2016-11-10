@@ -13,7 +13,7 @@ OBJ=$(SRC:.f90=.mod)
 OPT_OMP= -fopenmp
 
 #option de debugage :
-Debug= -Wall
+Debug= -Wall -fcheck=bounds
 
 IPATH=-I./ -I/usr/local/include
 LPATH=-L./
@@ -28,13 +28,15 @@ ALL:spectral pod spectralpod stat interpol tecplot qsort piv_data press_data net
 debug: CC += $(Debug)
 debug: ALL
 
-netcdf:lib_netcdf.mod
-lib_netcdf.mod:SOURCE/lib_netcdf.f90
+netcdf:lib_netcdf.o lib_netcdf.mod
+lib_netcdf.mod:SOURCE/lib_netcdf.f90 lib_netcdf.o
+	@true
+lib_netcdf.o:SOURCE/lib_netcdf.f90
 	$(CC) -c $^ -lnetcdff -lnetcdff
 
 spectral:lib_spectral.mod
 lib_spectral.mod:SOURCE/lib_spectral.f90
-	$(CC) -c $^ $(LIBS);
+	$(CC) -c $^ -lfftw3;
 
 stat:lib_stat.mod
 lib_stat.mod:SOURCE/lib_stat.f90
@@ -58,11 +60,11 @@ lib_spectralpod.mod:SOURCE/lib_spectralPOD.f90
 
 qsort:qsort_c.mod
 qsort_c.mod:SOURCE/qsort_c.f90
-	$(CC) -c $^ $(LIBS);
+	$(CC) -c $^;
 
-piv_data:stat pod qsort lib_piv_data.mod
+piv_data:stat pod qsort netcdf lib_piv_data.mod
 lib_piv_data.mod:SOURCE/lib_piv_data.f90
-	$(CC) -c $^ $(LIBS);
+	$(CC) -c $^ $(LIBS) -llibnetcdf -lnetcdff -lnetcdff;
 
 press_data:lib_press_data.mod
 lib_press_data.mod:SOURCE/lib_press_data.f90
