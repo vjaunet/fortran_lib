@@ -119,12 +119,13 @@ contains
        this%dimensions(idim)%len=dim_len(idim)
     end do
 
-    !data container memory allocation
+    !-- data container memory allocation
     allocate(this%var(this%nvar))
-    total_size=product(dim_len(1:this%ndim-1))
+    !for the dimensions
     do ivar=1,this%ndim
-       allocate(this%var(ivar)%data(total_size))
+       allocate(this%var(ivar)%data(this%dimensions(idim)%len))
     end do
+    !for the variables
     total_size=product(dim_len(1:this%ndim))
     do ivar=this%ndim+1,this%nvar
        allocate(this%var(ivar)%data(total_size))

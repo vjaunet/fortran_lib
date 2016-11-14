@@ -445,10 +445,10 @@ contains
        select case (fmt)
        case ('bin')
           call piv_io_write_bin(datapiv,filename)
-          ! case ('netCDF')
-          !    call piv_io_write_netcdf(datapiv,filename)
+       case ('netCDF')
+             call piv_io_write_netcdf(datapiv,filename)
        case default
-          STOP 'piv_io_write : unknom data format'
+          STOP 'piv_io_write : unknom data format (bin or netCDF)'
        end select
     else
        call piv_io_write_bin(datapiv,filename)
@@ -496,59 +496,67 @@ contains
     class(PIVdata)                     ::datapiv
     type(netcdf_data)                  ::ncdfpiv
     character(len=*)                   ::filename
-    logical                            ::file_exists
 
-    integer                            ::n1,n2,ic
+    character(len=4)   ,dimension(:), allocatable  ::varname
     !----------------------------------------------
 
     !switch from pivdata to netCDF format
     !------------------------------------
-    if (datapiv%nsamples==1) then
-       call ncdfpiv%create((/datapiv%ny,datapiv%nx/),(/'y','x'/),&
-            datapiv%ncomponent,(/'u','v'/))
-    else
-       call ncdfpiv%create((/datapiv%ny,datapiv%nx,datapiv%nsamples/),(/'y','x','t'/),&
-            datapiv%ncomponent,(/'u','v'/))
-    end if
-
-    !!! REVERT ALL THE FOLLOWING PROCESS !!!
-
-
     !beware netcdf data are column major mode (c++ style)
     !that is why x and y are inverted
-    datapiv%nx = ncdfpiv%dimensions(2)%len
-    datapiv%ny = ncdfpiv%dimensions(1)%len
-    if (ncdfpiv%ndim == 3) then
-       datapiv%nsamples   = ncdfpiv%dimensions(3)%len
-       datapiv%fs         = 1.d0/(ncdfpiv%var(3)%data(2)-ncdfpiv%var(3)%data(1))
-    else
-       datapiv%nsamples   = 1
-    end if
-    datapiv%ncomponent = ncdfpiv%nvar-ncdfpiv%ndim
-    datapiv%ncgen = 0
-
-    !allocate memory
-    call piv_create(datapiv)
-
-    !set coordinates
-    datapiv%x0 = ncdfpiv%var(2)%data(1)
-    datapiv%y0 = ncdfpiv%var(1)%data(1)
-    datapiv%dx = ncdfpiv%var(2)%data(2)-ncdfpiv%var(1)%data(1)
-    datapiv%dy = ncdfpiv%var(1)%data(2)-ncdfpiv%var(2)%data(1)
-
-    call piv_set_x(datapiv)
-
-    !fill variable memory
+    allocate(varname(datapiv%nsamples))
     do ic=1,datapiv%ncomponent
-       datapiv%u(:,:,ic,:)=reshape(ncdfpiv%var(ic+ncdfpiv%ndim)%data,&
-            (/datapiv%nx,datapiv%ny,datapiv%nsamples/))
+       write(varname(ic),'(a1,i1)')'u',ic
     end do
 
-    !free netcdf memory use
+    if (datapiv%nsamples /= 1) then
+
+       call ncdfpiv%create(&
+            (/datapiv%ny,datapiv%nx, datapiv%nsamples/),&
+            (/"y","x","t"/),&
+            datapiv%ncomponent+3,&
+            (/"yvar","xvar","tvar",(varname(ic),ic=1,datapiv%ncomponent)/)&
+            )
+    else
+       call ncdfpiv%create(&
+            (/datapiv%ny,datapiv%nx/),&
+            (/"y","x"/),&
+            datapiv%ncomponent+2,&
+            (/"yvar","xvar",(varname(ic),ic=1,datapiv%ncomponent)/)&
+            )
+    end if
+
+    do i=1,datapiv%nx
+       ncdfpiv%var(2)%data(i) = datapiv%x0 + (i-1)*datapiv%dx
+    end do
+    do i=1,datapiv%ny
+       ncdfpiv%var(1)%data(i) = datapiv%y0 + (i-1)*datapiv%dy
+    end do
+    if (datapiv%nsamples /= 1) then
+       do i=1,datapiv%nsamples
+          ncdfpiv%var(3)%data(i) = (i-1)/datapiv%fs
+       end do
+    end if
+    do ic=1,datapiv%ncomponent
+       ncdfpiv%var(ncdfpiv%ndim+ic)%data = reshape(datapiv%u(:,:,ic,:),&
+            (/size(ncdfpiv%var(ncdfpiv%ndim+ic)%data)/))
+    end do
+
+    !write the data
+    call ncdfpiv%write_data(filename)
+
+    !clear some memory
     call ncdfpiv%destroy()
 
   end subroutine piv_io_write_netcdf
 
+  !***********************************************************
+  !
+  !
+  !       Constructor / Destuctor Routines
+  !
+  !
+  !***********************************************************
 
 
   subroutine piv_destroy(datapiv)
