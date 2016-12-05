@@ -15,7 +15,7 @@ OPT_OMP= -fopenmp
 #option de debugage :
 Debug= -Wall -fcheck=bounds
 
-IPATH=-I./ -I/usr/local/include
+IPATH=-I./ -I/usr/include
 LPATH=-L./
 LIBS= -lfftw3 -llapack -lstat -lspectral -lpod $(LPATH)
 

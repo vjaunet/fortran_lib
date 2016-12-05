@@ -94,7 +94,6 @@ contains
     open(unit=fid,file=trim(ifile),action='read',access='stream',status='old')
     read(fid)p%version
     if (p%version==cur_version) then
-       read(fid)p%nsensors,p%nsamples,p%Fs
        read(fid)p%nsensors,p%nsamples,p%Fs,p%Pa
        read(fid)p%comments
 
