@@ -28,6 +28,8 @@ MODULE LIB_PRESS_DATA
      procedure  :: create => ccor
      procedure  :: read_bin => press_io_read
      procedure  :: write_bin => press_io_write
+     procedure  :: read_data => press_io_read
+     procedure  :: write_data => press_io_write
      procedure  :: print_info => press_info
      procedure  :: destroy => press_destroy
 
@@ -104,7 +106,7 @@ contains
        read(fid)p%p
     else
        write(06,'(a,a)')'PRESSdata error : version unknown'
-       return
+       STOP
     end if
     close(fid)
 
