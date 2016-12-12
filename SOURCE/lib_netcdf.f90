@@ -44,6 +44,7 @@ MODULE lib_netcdf
    contains
      procedure          :: create => lib_netcdf_create
      procedure          :: destroy => lib_netcdf_destroy
+     procedure          :: getvarid => lib_netcdf_getvarid
      procedure          :: setVarNames => lib_netcdf_setVarNames
      procedure          :: setDimNames => lib_netcdf_setDimNames
      procedure          :: fillVar => lib_netcdf_fillVar
@@ -252,6 +253,32 @@ contains
 
   !********************************************************
   !
+  !> function getVariableid
+  !> return the index of the desired variable
+  !> @param
+  !> @param
+  !>
+  !********************************************************
+  integer function lib_netcdf_getvarid(this,varname)
+    class(netcdf_data)                          ::this
+    character(len=*)                            ::varname
+    integer                                     ::ivar
+    !------------------------------------------------------
+
+    do ivar=1,this%nvar
+       if (this%var(ivar)%name == varname) then
+          lib_netcdf_getvarid = ivar
+          return
+       end if
+    end do
+
+
+  end function  lib_netcdf_getvarid
+
+
+
+  !********************************************************
+  !
   !   Read data section
   !
   !
@@ -276,9 +303,9 @@ contains
     !get to know what is in the file
     call check(nf90_inquire(this%ncdf_id,nDimensions=this%ndim,&
          nVariables=this%nvar,&
-          nAttributes=this%nattrib,&
-          unlimitedDimId=this%unlimDimId,&
-          formatNum=this%formatnum))
+         nAttributes=this%nattrib,&
+         unlimitedDimId=this%unlimDimId,&
+         formatNum=this%formatnum))
 
     allocate(this%var(this%nvar))
     allocate(this%dimensions(this%ndim))
