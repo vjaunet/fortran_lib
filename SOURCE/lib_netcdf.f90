@@ -255,8 +255,8 @@ contains
   !
   !> function getVariableid
   !> return the index of the desired variable
-  !> @param
-  !> @param
+  !> @param charater(len=*) varname
+  !> @return integer*4 varid
   !>
   !********************************************************
   integer function lib_netcdf_getvarid(this,varname)
@@ -269,6 +269,8 @@ contains
        if (this%var(ivar)%name == varname) then
           lib_netcdf_getvarid = ivar
           return
+       else
+          lib_netcdf_getvarid = -1
        end if
     end do
 
