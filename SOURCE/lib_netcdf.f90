@@ -1,21 +1,29 @@
+!---------------------------------------------------------------------------
+! MODULE : lib_netcdf
+!
+!
+!        netCDF interface for handling data
+!
+!
+! Description:
+!>         Wrapper to  netcdf fortran 90 routines to handle all the hard work.
+!>         The above routines will open, read and store data in dedicated objects.
+!>
+!
+!> @author
+!> Vincent Jaunet, CNRS
+!
+! REVISION HISTORY:
+! 12/2016
+!
+! LICENCE : GPLv3.0
+!
+!---------------------------------------------------------------------------
+
 MODULE lib_netcdf
   use netcdf
   implicit none
-  !
-  !
-  !
-  !        netCDF interface for handling data
-  !
-  ! Description:
-  !         wrapper to  netcdf fortran 90 routines to handle all the hard work
-  !         simple to the aboc routines will open, read and store data
-  !         in dedicated objects.
-  !
-  ! author :
-  !        vincent jaunet
-  !
-  ! licence : GPL v3.0
-  !
+
   !============================================================================
   ! data containers
   type ncdf_var_t
@@ -53,6 +61,7 @@ MODULE lib_netcdf
      procedure          :: close_file => lib_netcdf_close
      procedure          :: read_data => lib_netcdf_read
      procedure          :: write_data => lib_netcdf_write
+     procedure          :: dump => lib_netcdf_dump
      procedure          :: print_help => lib_netcdf_print_help
      procedure          :: print_info
 
@@ -97,7 +106,6 @@ contains
     character(len=*),dimension(var_len),optional::var_name
     integer   ,optional         ::unlimDimId, formatnum, nattrib
 
-    integer                                     ::ndim,nvar
     integer                                     ::total_size
 
     integer                                     ::ivar,idim
@@ -205,9 +213,8 @@ contains
 
   end subroutine lib_netcdf_fillVar
 
-  subroutine lib_netcdf_setVarNames(this,var_name)
+  subroutine lib_netcdf_setVarNames(this)
     class(netcdf_data)                          ::this
-    character(len=*) ,dimension(:)              ::var_name
     integer                                     ::ivar
     !------------------------------------------------------
     if (.not.allocated(this%var)) then
@@ -220,9 +227,8 @@ contains
     end do
   end subroutine lib_netcdf_setVarNames
 
-  subroutine lib_netcdf_setDimNames(this,dim_name)
+  subroutine lib_netcdf_setDimNames(this)
     class(netcdf_data)                          ::this
-    character(len=*) ,dimension(:)              ::dim_name
     integer                                     ::idim
     !------------------------------------------------------
 
@@ -273,8 +279,8 @@ contains
     end do
 
     !the name has not been found :
-    write(06,*)'lib_netcdf_getvarid : unkwnown variable name "',varname,'"'
-
+    ! write(06,*)'lib_netcdf_getvarid : unkwnown variable name "',varname,'"'
+    lib_netcdf_getvarid = -1
 
   end function  lib_netcdf_getvarid
 
@@ -357,10 +363,9 @@ contains
     class(netcdf_data)               ::this
     character(len=*)                 ::filename
 
-    integer  ,dimension(this%ndim)   ::dim_id,dim_len
+    integer  ,dimension(this%ndim)   ::dim_id
     integer  ,dimension(this%nvar)   ::var_id
-    integer                          ::idim,ivar,trash
-    integer                          ::var_size
+    integer                          ::idim,ivar
     integer  ,dimension(this%ndim)   ::start_,count_
     !-------------------------------------------
 
@@ -415,6 +420,90 @@ contains
 
   end subroutine lib_netcdf_write
 
+  !==========================================================
+  !> lib_netcdf_dump
+  !> @param[in] filename : character
+  !> @param[in] optional char_var : character
+  !> @param[in] optional Id_Var   : integer
+  !
+  !> @brief outputs desired data to the specified filename.
+  !> either one of the optional paramter should be specified.
+  !> the ouput format is gnuplot ascii
+  !> exammples :
+  !> call obj%dump((/"varname1","varname2", ... ,begin=10,nsamples=1500/)
+  !> call obj%dump((/1,2,5../)
+  !> call obj%dump(10) output 10 samples of all the variables
+  !==========================================================
+  subroutine lib_netcdf_dump(this,filename,char_var,Id_Var,begin,nsamples)
+    class(netcdf_data)                         ::this
+    character(len=*)                           ::filename
+    character(len=*) ,dimension(:), optional   ::char_var
+    integer          ,dimension(:), optional   ::Id_var
+    integer          ,optional                 ::nsamples
+    integer          ,optional                 ::begin
+
+    integer          ,dimension(:), allocatable::Id      !> @var variable Id container
+    integer                                    ::ivar    !> @var Loop variable
+    integer                                    ::is      !> @var Loop variable
+    integer                                    ::Ns      !> @var Loop variable
+    integer                                    ::ideb=1  !> @var Loop variable
+    !-------------------------------------------------------------------------
+
+
+    if (present(char_var)) then
+
+       allocate(Id(size(char_var,1)))
+       do ivar=1,size(char_var,1)
+          Id(ivar)=this%getVarId(trim(char_var(ivar)))
+          if (Id(ivar) < 0) then
+             write(06,*)'lib_netcdf_dump: unknown variable name "',trim(char_var(ivar)),'"'
+             STOP
+          end if
+       end do
+
+    else if (present(Id_var)) then
+       !dynamic allocation f2003
+       Id=Id_var
+
+    else
+       !default output everything
+       Id=(/(ivar,ivar=1,this%nvar)/)
+
+    end if
+
+    if (present(nsamples)) then
+       Ns=nsamples
+    else
+       Ns=this%dimensions(1)%len
+    end if
+
+    if (present(begin)) then
+       ideb=begin
+    end if
+
+    open(unit=10,file=trim(filename),status="unknown")
+    if (size(this%dimensions) == 1) then
+       write(10,'(50(a,2x))')"#",(trim(this%var(Id(ivar))%name)//" ",ivar=1,size(Id,1))
+       do is=ideb,Ns
+          write(10,'(50(e15.8,2x))')(this%var(Id(ivar))%data(is),ivar=1,size(Id,1))
+       end do
+    else
+       STOP "lib_netcdf_dump: number of dimensions not yet suported"
+    end if
+    close(10)
+
+
+  end subroutine lib_netcdf_dump
+
+
+
+  !**************************************************
+  !*
+  !*
+  !*    Information and help
+  !*
+  !*
+  !**************************************************
 
   subroutine print_info(this)
     class(netcdf_data)             ::this
@@ -446,9 +535,11 @@ contains
     write(06,*)''
     write(06,*)'-- obj.open(filename)'
     write(06,*)'-- obj.close()'
-    write(06,*)'-- obj.read() : reads and store the data into '
-    write(06,*)'obj.dimensions and obj.var derived type'
+    write(06,*)'-- obj.read_data() : reads and store the data into '
+    write(06,*)'-- obj.dimensions and obj.var derived type'
     write(06,*)'-- obj.print_info(), obj.print_help()'
+
+    this%ncdf_id=this%ncdf_id !to avoid gfortran warnings
     STOP
   end subroutine lib_netcdf_print_help
 
