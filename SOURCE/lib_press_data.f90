@@ -13,6 +13,11 @@ MODULE LIB_PRESS_DATA
   integer, private, parameter ::ndim=2
   character(len=4),private ::cur_version="v0.1"
 
+
+  private ::press_io_constructor,press_io_read,&
+       press_io_write,press_info,press_destroy
+
+
   type PRESSdata
      character(len=4) ::version
      integer          ::nsamples
@@ -25,7 +30,7 @@ MODULE LIB_PRESS_DATA
 
    contains
 
-     procedure  :: create => ccor
+     procedure  :: create => press_io_constructor
      procedure  :: read_bin => press_io_read
      procedure  :: write_bin => press_io_write
      procedure  :: read_data => press_io_read
@@ -48,7 +53,7 @@ contains
     return
   end subroutine press_info
 
-  subroutine ccor(p,nsamples,nsensors,Fs,Pa,com)
+  subroutine press_io_constructor(p,nsamples,nsensors,Fs,Pa,com)
     class(PRESSdata)              ::p
     integer                       ::nsamples,nsensors
     real                          ::Fs,Pa
@@ -67,7 +72,7 @@ contains
        p%comments=trim(com)
     end if
 
-  end subroutine ccor
+  end subroutine press_io_constructor
 
   subroutine press_destroy(this)
     class(PRESSdata)              ::this

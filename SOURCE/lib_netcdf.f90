@@ -269,10 +269,11 @@ contains
        if (this%var(ivar)%name == varname) then
           lib_netcdf_getvarid = ivar
           return
-       else
-          lib_netcdf_getvarid = -1
        end if
     end do
+
+    !the name has not been found :
+    write(06,*)'lib_netcdf_getvarid : unkwnown variable name "',varname,'"'
 
 
   end function  lib_netcdf_getvarid
@@ -425,7 +426,7 @@ contains
     write(06,*)'Dimensions :'
     write(06,*)'------------'
     do idim=1,this%ndim
-       write(06,'(a,i3,a,a,a,i3)')' Dimension ',idim,' name :',trim(this%dimensions(idim)%name),&
+       write(06,'(a,i3,a,a,a,i7)')' Dimension ',idim,' name :',trim(this%dimensions(idim)%name),&
             &', length = ', this%dimensions(idim)%len
     end do
     write(06,*)

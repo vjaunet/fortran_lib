@@ -80,7 +80,7 @@ module lib_spectral
 
   end type psd_param
 
-  public  :: fft,ifft, psd,cor, xpsd, xcor, mscohere, unwrap_phase, fillf
+  public  :: fft, ifft, psd, cor, xpsd, xcor, mscohere, unwrap_phase, fillf
 
   private :: c_fft_1d,d_fft_1d,d_fft_1d_f,&
        d_ifft_1d,d_ifft_2d,c_ifft_1d,&
@@ -1802,6 +1802,11 @@ contains
        d1=s1
        nf = def_param%nfft
        cplx=.false.
+    type is (real(kind=4))
+       allocate(d1(ns))
+       d1=dble(s1)
+       nf = def_param%nfft
+       cplx=.false.
     end select
 
     select type (s2)
@@ -1811,6 +1816,9 @@ contains
     type is (real(kind=8))
        allocate(d2(ns))
        d2=s2
+    type is (real(kind=4))
+       allocate(d2(ns))
+       d2=dble(s2)
     end select
 
     allocate(xsp_full(nf))
