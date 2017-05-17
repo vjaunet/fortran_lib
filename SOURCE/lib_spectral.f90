@@ -1,6 +1,7 @@
 module lib_spectral
   implicit none
   include 'fftw3.f'
+
   !*==================================================================
   !*
   !*
@@ -48,27 +49,43 @@ module lib_spectral
   integer(kind=8), private ::i,j,k,in,if,ic
 
   type psd_param
+
+
      integer(kind=8)                ::nfft=1024
      integer(kind=8)                ::overlap=512
      character(len=1)               ::window='H'
-     !available window type : box = 'B', Hamming = 'H', Hanning 'A'
+     ! available window type : box = 'B', Hamming = 'H', Hanning 'A'
+
      real(kind=8)                   ::fe=1.d0      !sampling freq
      real(kind=8)                   ::fmin=0.5d0   !min frequency to be computed (slotting)
-     logical                        ::allocated_fft =.false.
-     logical                        ::allocated_ifft=.false.
+
+     !optionnal cheking and normalizing parameters
      logical                        ::norm_fft=.true.
      logical                        ::rms_norm=.false.
      logical                        ::check_pval=.false.
      logical                        ::detrend=.false.
+
+     !internal varaibles attached to the type------
+     !faster processing is expecting from fftw by using these
+     logical                        ::allocated_fft =.false.
+     logical                        ::allocated_ifft=.false.
      integer(kind=8)                ::plan=0
      integer(kind=8)                ::plan_ifft=0
+
+
+     ! TO DO : NICE TO HAVE TYPE BOUNDED PROCEDURES
+     ! contains
+     !   !! Type Bounded Procedures
+     !   procedure  :: psd => c_psd_1d, c_psd_1d_f, d_psd_1d, d_psd_1d_f, d_psd_lda
+
   end type psd_param
 
-  public  :: fft,ifft, psd,cor, xpsd, xcor, mscohere, unwrap_phase, fillf
+  public  :: fft, ifft, psd, cor, xpsd, xcor, mscohere, unwrap_phase, fillf
 
   private :: c_fft_1d,d_fft_1d,d_fft_1d_f,&
        d_ifft_1d,d_ifft_2d,c_ifft_1d,&
        c_psd_1d, c_psd_1d_f,&
+       f_psd_1d, f_psd_1d_f,&
        d_psd_1d, d_psd_1d_f, d_cor_1d,&
        xcor_1d,&
        d_xpsd_1d,d_xpsd_1d_f,&
@@ -89,7 +106,8 @@ module lib_spectral
   end interface ifft
 
   interface psd
-     module procedure c_psd_1d, c_psd_1d_f, d_psd_1d, d_psd_1d_f, d_psd_lda
+     module procedure c_psd_1d, c_psd_1d_f, d_psd_1d, d_psd_1d_f, &
+          f_psd_1d, f_psd_1d_f, d_psd_lda
   end interface psd
 
   interface cor
@@ -709,6 +727,7 @@ contains
     end if
 
     !call psd
+
     call d_psd_1d(s,sp,def_param)
 
     !free some memory
@@ -721,9 +740,62 @@ contains
 
   end subroutine d_psd_1d_f
 
+  subroutine f_psd_1d_f (s,f,sp,param)
+    real(kind=4)     ,dimension(:)              ::s
+    complex(kind=8)  ,dimension(:)              ::sp
+    type(psd_param)  ,optional                  ::param
+    real(kind=8)     ,dimension(:)              ::f
+
+    type(psd_param)                             ::def_param
+    !---------------------------------------------------
+
+    if (present(param)) then
+       def_param = param
+    end if
+
+    !call psd
+
+    call d_psd_1d(dble(s),sp,def_param)
+
+    !free some memory
+    call free_fft(def_param)
+
+    !fill in f
+    call fillf(f,def_param)
+
+    return
+
+  end subroutine f_psd_1d_f
+
+  subroutine f_psd_1d (s,sp,param)
+    real(kind=4)     ,dimension(:)              ::s
+    complex(kind=8)  ,dimension(:)              ::sp
+    type(psd_param)  ,optional                  ::param
+
+    type(psd_param)                             ::def_param
+    !---------------------------------------------------
+
+    if (present(param)) then
+       def_param = param
+    end if
+
+    !call psd
+
+    call d_psd_1d(dble(s),sp,def_param)
+
+    !free some memory
+    call free_fft(def_param)
+
+    return
+
+  end subroutine f_psd_1d
+
   !----------------------------------------------------
   !*   END PSD
   !----------------------------------------------------
+
+
+
 
   !----------------------------------------------------
   !*   Cross-PSD
@@ -1730,6 +1802,11 @@ contains
        d1=s1
        nf = def_param%nfft
        cplx=.false.
+    type is (real(kind=4))
+       allocate(d1(ns))
+       d1=dble(s1)
+       nf = def_param%nfft
+       cplx=.false.
     end select
 
     select type (s2)
@@ -1739,6 +1816,9 @@ contains
     type is (real(kind=8))
        allocate(d2(ns))
        d2=s2
+    type is (real(kind=4))
+       allocate(d2(ns))
+       d2=dble(s2)
     end select
 
     allocate(xsp_full(nf))

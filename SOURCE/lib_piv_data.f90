@@ -308,7 +308,8 @@ contains
        case ('netCDF')
           call piv_io_read_netcdf(datapiv,filename)
        case default
-          STOP 'piv_io_read : unknom data format'
+          write(06,*) 'piv_io_read : unknown data format "',fmt,'"'
+          STOP
        end select
     else
        call piv_io_read_bin(datapiv,filename)
