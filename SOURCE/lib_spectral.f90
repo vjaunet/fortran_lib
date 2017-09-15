@@ -98,7 +98,8 @@ module lib_spectral
        unwrap_phase_d,unwrap_phase_f
 
   interface fft
-     module procedure f_fft_1d,d_fft_1d,d_fft_1d_f,d_fft_2d
+     module procedure f_fft_1d,d_fft_1d,d_fft_1d_f,&
+          c_fft_1d, d_fft_2d
   end interface fft
 
   interface ifft
