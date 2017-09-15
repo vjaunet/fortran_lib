@@ -7,6 +7,12 @@ Since Intel stopped there non-commercial license, the library is ported to the G
 The Intel compiler should still be supported.
 The library compiles with gfortran from Homebrew gcc 6.1.0_1. GCC 7.x not yet tested
 
+Requirement :
+-------------
+netcdf
+lapack
+fftw
+
 Installation :
 --------------
 make

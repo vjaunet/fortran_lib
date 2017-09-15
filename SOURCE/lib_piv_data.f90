@@ -305,8 +305,8 @@ contains
        select case (fmt)
        case ('bin')
           call piv_io_read_bin(datapiv,filename)
-       case ('netCDF')
-          call piv_io_read_netcdf(datapiv,filename)
+       ! case ('netCDF')
+       !    call piv_io_read_netcdf(datapiv,filename)
        case default
           write(06,*) 'piv_io_read : unknown data format "',fmt,'"'
           STOP
@@ -317,64 +317,64 @@ contains
 
   end subroutine piv_io_read
 
-  subroutine piv_io_read_netcdf(datapiv,filename)
-    use lib_netcdf
-    class(PIVdata)                     ::datapiv
-    type(netcdf_data)                  ::ncdfpiv
-    character(len=*)                   ::filename
-    logical                            ::file_exists
+  ! subroutine piv_io_read_netcdf(datapiv,filename)
+  !   use lib_netcdf
+  !   class(PIVdata)                     ::datapiv
+  !   type(netcdf_data)                  ::ncdfpiv
+  !   character(len=*)                   ::filename
+  !   logical                            ::file_exists
 
-    integer                            ::n1,n2,ic
-    !----------------------------------------------
+  !   integer                            ::n1,n2,ic
+  !   !----------------------------------------------
 
-    !check existence of binary data file
-    inquire(file=trim(filename), EXIST=file_exists)
-    if (file_exists) then
-       call ncdfpiv%read_data(filename)
-    else
-       write(06,*) trim(filename)," doesn't exist..."
-       STOP
-    end if
+  !   !check existence of binary data file
+  !   inquire(file=trim(filename), EXIST=file_exists)
+  !   if (file_exists) then
+  !      call ncdfpiv%read_data(filename)
+  !   else
+  !      write(06,*) trim(filename)," doesn't exist..."
+  !      STOP
+  !   end if
 
-    !switch from netCDF to pivdata format
-    !------------------------------------
-    if (ncdfpiv%ndim == 1) &
-         STOP 'piv_io_read_netcdf : wrong number of dimensions in the piv file'
+  !   !switch from netCDF to pivdata format
+  !   !------------------------------------
+  !   if (ncdfpiv%ndim == 1) &
+  !        STOP 'piv_io_read_netcdf : wrong number of dimensions in the piv file'
 
-    !beware netcdf data are column major mode (c++ style)
-    !that is why x and y are inverted
-    datapiv%nx = ncdfpiv%dimensions(2)%len
-    datapiv%ny = ncdfpiv%dimensions(1)%len
-    if (ncdfpiv%ndim == 3) then
-       datapiv%nsamples   = ncdfpiv%dimensions(3)%len
-       datapiv%fs         = 1.d0/(ncdfpiv%var(3)%data(2)-ncdfpiv%var(3)%data(1))
-    else
-       datapiv%nsamples   = 1
-    end if
-    datapiv%ncomponent = ncdfpiv%nvar-ncdfpiv%ndim
-    datapiv%ncgen = 0
+  !   !beware netcdf data are column major mode (c++ style)
+  !   !that is why x and y are inverted
+  !   datapiv%nx = ncdfpiv%dimensions(2)%len
+  !   datapiv%ny = ncdfpiv%dimensions(1)%len
+  !   if (ncdfpiv%ndim == 3) then
+  !      datapiv%nsamples   = ncdfpiv%dimensions(3)%len
+  !      datapiv%fs         = 1.d0/(ncdfpiv%var(3)%data(2)-ncdfpiv%var(3)%data(1))
+  !   else
+  !      datapiv%nsamples   = 1
+  !   end if
+  !   datapiv%ncomponent = ncdfpiv%nvar-ncdfpiv%ndim
+  !   datapiv%ncgen = 0
 
-    !allocate memory
-    call piv_create(datapiv)
+  !   !allocate memory
+  !   call piv_create(datapiv)
 
-    !set coordinates
-    datapiv%x0 = ncdfpiv%var(2)%data(1)
-    datapiv%y0 = ncdfpiv%var(1)%data(1)
-    datapiv%dx = ncdfpiv%var(2)%data(2)-ncdfpiv%var(1)%data(1)
-    datapiv%dy = ncdfpiv%var(1)%data(2)-ncdfpiv%var(2)%data(1)
+  !   !set coordinates
+  !   datapiv%x0 = ncdfpiv%var(2)%data(1)
+  !   datapiv%y0 = ncdfpiv%var(1)%data(1)
+  !   datapiv%dx = ncdfpiv%var(2)%data(2)-ncdfpiv%var(1)%data(1)
+  !   datapiv%dy = ncdfpiv%var(1)%data(2)-ncdfpiv%var(2)%data(1)
 
-    call piv_set_x(datapiv)
+  !   call piv_set_x(datapiv)
 
-    !fill variable memory
-    do ic=1,datapiv%ncomponent
-       datapiv%u(:,:,ic,:)=reshape(ncdfpiv%var(ic+ncdfpiv%ndim)%data,&
-            (/datapiv%nx,datapiv%ny,datapiv%nsamples/))
-    end do
+  !   !fill variable memory
+  !   do ic=1,datapiv%ncomponent
+  !      datapiv%u(:,:,ic,:)=reshape(ncdfpiv%var(ic+ncdfpiv%ndim)%data,&
+  !           (/datapiv%nx,datapiv%ny,datapiv%nsamples/))
+  !   end do
 
-    !free netcdf memory use
-    call ncdfpiv%destroy()
+  !   !free netcdf memory use
+  !   call ncdfpiv%destroy()
 
-  end subroutine piv_io_read_netcdf
+  ! end subroutine piv_io_read_netcdf
 
   subroutine piv_io_read_bin(datapiv,filename)
     class(PIVdata)                     ::datapiv
@@ -446,8 +446,8 @@ contains
        select case (fmt)
        case ('bin')
           call piv_io_write_bin(datapiv,filename)
-       case ('netCDF')
-             call piv_io_write_netcdf(datapiv,filename)
+       ! case ('netCDF')
+       !       call piv_io_write_netcdf(datapiv,filename)
        case default
           STOP 'piv_io_write : unknom data format (bin or netCDF)'
        end select
@@ -492,64 +492,64 @@ contains
 
   end subroutine piv_io_write_bin
 
-  subroutine piv_io_write_netcdf(datapiv,filename)
-    use lib_netcdf
-    class(PIVdata)                     ::datapiv
-    type(netcdf_data)                  ::ncdfpiv
-    character(len=*)                   ::filename
+  ! subroutine piv_io_write_netcdf(datapiv,filename)
+  !   use lib_netcdf
+  !   class(PIVdata)                     ::datapiv
+  !   type(netcdf_data)                  ::ncdfpiv
+  !   character(len=*)                   ::filename
 
-    character(len=4)   ,dimension(:), allocatable  ::varname
-    !----------------------------------------------
+  !   character(len=4)   ,dimension(:), allocatable  ::varname
+  !   !----------------------------------------------
 
-    !switch from pivdata to netCDF format
-    !------------------------------------
-    !beware netcdf data are column major mode (c++ style)
-    !that is why x and y are inverted
-    allocate(varname(datapiv%nsamples))
-    do ic=1,datapiv%ncomponent
-       write(varname(ic),'(a1,i1)')'u',ic
-    end do
+  !   !switch from pivdata to netCDF format
+  !   !------------------------------------
+  !   !beware netcdf data are column major mode (c++ style)
+  !   !that is why x and y are inverted
+  !   allocate(varname(datapiv%nsamples))
+  !   do ic=1,datapiv%ncomponent
+  !      write(varname(ic),'(a1,i1)')'u',ic
+  !   end do
 
-    if (datapiv%nsamples /= 1) then
+  !   if (datapiv%nsamples /= 1) then
 
-       call ncdfpiv%create(&
-            (/datapiv%ny,datapiv%nx, datapiv%nsamples/),&
-            (/"y","x","t"/),&
-            datapiv%ncomponent+3,&
-            (/"yvar","xvar","tvar",(varname(ic),ic=1,datapiv%ncomponent)/)&
-            )
-    else
-       call ncdfpiv%create(&
-            (/datapiv%ny,datapiv%nx/),&
-            (/"y","x"/),&
-            datapiv%ncomponent+2,&
-            (/"yvar","xvar",(varname(ic),ic=1,datapiv%ncomponent)/)&
-            )
-    end if
+  !      call ncdfpiv%create(&
+  !           (/datapiv%ny,datapiv%nx, datapiv%nsamples/),&
+  !           (/"y","x","t"/),&
+  !           datapiv%ncomponent+3,&
+  !           (/"yvar","xvar","tvar",(varname(ic),ic=1,datapiv%ncomponent)/)&
+  !           )
+  !   else
+  !      call ncdfpiv%create(&
+  !           (/datapiv%ny,datapiv%nx/),&
+  !           (/"y","x"/),&
+  !           datapiv%ncomponent+2,&
+  !           (/"yvar","xvar",(varname(ic),ic=1,datapiv%ncomponent)/)&
+  !           )
+  !   end if
 
-    do i=1,datapiv%nx
-       ncdfpiv%var(2)%data(i) = datapiv%x0 + (i-1)*datapiv%dx
-    end do
-    do i=1,datapiv%ny
-       ncdfpiv%var(1)%data(i) = datapiv%y0 + (i-1)*datapiv%dy
-    end do
-    if (datapiv%nsamples /= 1) then
-       do i=1,datapiv%nsamples
-          ncdfpiv%var(3)%data(i) = (i-1)/datapiv%fs
-       end do
-    end if
-    do ic=1,datapiv%ncomponent
-       ncdfpiv%var(ncdfpiv%ndim+ic)%data = reshape(datapiv%u(:,:,ic,:),&
-            (/size(ncdfpiv%var(ncdfpiv%ndim+ic)%data)/))
-    end do
+  !   do i=1,datapiv%nx
+  !      ncdfpiv%var(2)%data(i) = datapiv%x0 + (i-1)*datapiv%dx
+  !   end do
+  !   do i=1,datapiv%ny
+  !      ncdfpiv%var(1)%data(i) = datapiv%y0 + (i-1)*datapiv%dy
+  !   end do
+  !   if (datapiv%nsamples /= 1) then
+  !      do i=1,datapiv%nsamples
+  !         ncdfpiv%var(3)%data(i) = (i-1)/datapiv%fs
+  !      end do
+  !   end if
+  !   do ic=1,datapiv%ncomponent
+  !      ncdfpiv%var(ncdfpiv%ndim+ic)%data = reshape(datapiv%u(:,:,ic,:),&
+  !           (/size(ncdfpiv%var(ncdfpiv%ndim+ic)%data)/))
+  !   end do
 
-    !write the data
-    call ncdfpiv%write_data(filename)
+  !   !write the data
+  !   call ncdfpiv%write_data(filename)
 
-    !clear some memory
-    call ncdfpiv%destroy()
+  !   !clear some memory
+  !   call ncdfpiv%destroy()
 
-  end subroutine piv_io_write_netcdf
+  ! end subroutine piv_io_write_netcdf
 
   !***********************************************************
   !

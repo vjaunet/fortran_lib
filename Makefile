@@ -15,14 +15,14 @@ OPT_OMP= -fopenmp
 Debug= -Wall -fcheck=all -g
 
 IPATH=-I./ -I/usr/include
-LPATH=-L./
+LPATH=-L./ -L/usr/lib
 
 CC = gfortran -O2 $(IPATH)
 CC += $(OPT_OMP)
 
 ALL:static install
 
-static:spectral pod spectralpod stat interpol tecplot qsort piv_data press_data netcdf
+static:spectral pod spectralpod stat interpol tecplot qsort piv_data press_data #netcdf
 
 debug: CC += $(Debug)
 debug: ALL
@@ -75,7 +75,7 @@ qsort_c.mod:SOURCE/qsort_c.f90 qsort_c.o
 qsort_c.o:SOURCE/qsort_c.f90
 	$(CC) -c $^
 
-piv_data:stat pod qsort netcdf lib_piv_data.mod
+piv_data:stat pod qsort lib_piv_data.mod #netcdf
 lib_piv_data.mod:SOURCE/lib_piv_data.f90 lib_piv_data.o
 	@true
 lib_piv_data.o:SOURCE/lib_piv_data.f90
@@ -89,13 +89,13 @@ lib_press_data.o:SOURCE/lib_press_data.f90
 
 
 install:
-	ar rc liblibnetcdf.a lib_netcdf.o
+	#ar rc liblibnetcdf.a lib_netcdf.o
 	ar rc libtecplot.a lib_tecplot_io.o
 	ar rc libinterpol.a lib_interpol.o
 	ar rc libstat.a lib_stat.o
 	ar rc libpod.a lib_pod.o
 	ar rc libspectralpod.a lib_spectralPOD.o lib_spectral.o
-	ar rc libpivdata.a lib_piv_data.o qsort_c.o lib_pod.o lib_stat.o lib_netcdf.o
+	ar rc libpivdata.a lib_piv_data.o qsort_c.o lib_pod.o lib_stat.o #lib_netcdf.o
 	ar rc libspectral.a lib_spectral.o
 	ar rc libpressdata.a lib_press_data.o
 	mkdir -p MOD

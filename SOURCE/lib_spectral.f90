@@ -82,7 +82,7 @@ module lib_spectral
 
   public  :: fft, ifft, psd, cor, xpsd, xcor, mscohere, unwrap_phase, fillf
 
-  private :: c_fft_1d,d_fft_1d,d_fft_1d_f,&
+  private :: c_fft_1d,f_fft_1d,d_fft_1d,d_fft_1d_f,&
        d_ifft_1d,d_ifft_2d,c_ifft_1d,&
        c_psd_1d, c_psd_1d_f,&
        f_psd_1d, f_psd_1d_f,&
@@ -98,7 +98,7 @@ module lib_spectral
        unwrap_phase_d,unwrap_phase_f
 
   interface fft
-     module procedure d_fft_1d,d_fft_1d_f,d_fft_2d
+     module procedure f_fft_1d,d_fft_1d,d_fft_1d_f,d_fft_2d
   end interface fft
 
   interface ifft
@@ -277,6 +277,47 @@ contains
 
   end subroutine d_fft_1d_f
 
+  subroutine f_fft_1d(s, sp, param)
+    real(kind=4)     ,dimension(:)              ::s
+    complex(kind=4)  ,dimension(:)              ::sp
+    type(psd_param) ,optional                   ::param
+
+    type(psd_param)                             ::def_param
+    integer(kind=8)                             ::plan
+    !----------------------------------------------------
+
+    if (size(sp,1) /= size(s)/2+1) then
+       STOP 'FFT : size(sp) must be size(s)/2+1.'
+    end if
+
+    if (present(param)) then
+       def_param = param
+    end if
+
+    if (.not.def_param%allocated_fft) then
+       !allocate fftw
+       call dfftw_plan_dft_r2c_1d(def_param%plan,&
+            def_param%nfft,s,sp,FFTW_ESTIMATE)
+       !set allocated to true for next call
+       def_param%allocated_fft = .true.
+    end if
+
+    !compute fftw
+    call dfftw_execute(def_param%plan,s,sp)
+
+    !normalization
+    if (def_param%norm_fft) then
+       sp = sp/def_param%nfft
+    end if
+
+    !return parameter values for next call
+    if (present(param)) then
+       param = def_param
+    end if
+
+    return
+
+  end subroutine f_fft_1d
 
   subroutine d_fft_2d(s, sp, param)
     real(kind=8)    ,dimension(:,:)             ::s
