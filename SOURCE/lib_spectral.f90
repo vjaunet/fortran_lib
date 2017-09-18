@@ -442,6 +442,7 @@ contains
 
   subroutine c4_ifft_1d(sp,s,param)
     complex(kind=4)  ,dimension(:)              ::s
+    complex(kind=8)  ,dimension(:) ,allocatable ::s8
     complex(kind=4)  ,dimension(:)              ::sp
     type(psd_param) ,optional                   ::param
 
@@ -453,20 +454,25 @@ contains
        def_param = param
     end if
 
+    allocate(s8(SIZE(s)))
+
     if (.not.def_param%allocated_ifft) then
        !allocate fftw
        call dfftw_plan_dft_1d(def_param%plan_ifft,&
-            size(sp,1),sp,s,FFTW_BACKWARD,FFTW_ESTIMATE)
+            size(sp,1),real(sp,kind=8),s8,FFTW_BACKWARD,FFTW_ESTIMATE)
        def_param%allocated_ifft = .true.
     end if
 
     !compute fftw
-    call dfftw_execute(def_param%plan_ifft,sp,s)
+    call dfftw_execute(def_param%plan_ifft,sp,s8)
 
     !return parameter values for next call
     if (present(param)) then
        param = def_param
     end if
+
+    s=real(s8)
+    deallocate(s8)
 
     return
 
