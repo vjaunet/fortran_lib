@@ -89,7 +89,6 @@ lib_press_data.o:SOURCE/lib_press_data.f90
 
 
 install:
-	#ar rc liblibnetcdf.a lib_netcdf.o
 	ar rc libtecplot.a lib_tecplot_io.o
 	ar rc libinterpol.a lib_interpol.o
 	ar rc libstat.a lib_stat.o
@@ -103,6 +102,7 @@ install:
 	cp *.mod MOD/.
 	mv *.a LIB/.
 
+        #ar rc liblibnetcdf.a lib_netcdf.o
 
 clean:
 	rm -rf *.o *.mod *.a SOURCE/*~
