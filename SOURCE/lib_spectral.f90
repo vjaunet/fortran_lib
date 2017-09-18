@@ -83,7 +83,7 @@ module lib_spectral
   public  :: fft, ifft, psd, cor, xpsd, xcor, mscohere, unwrap_phase, fillf
 
   private :: c_fft_1d,f_fft_1d,d_fft_1d,d_fft_1d_f,&
-       d_ifft_1d,d_ifft_2d,c_ifft_1d,&
+       d_ifft_1d,d_ifft_2d,c_ifft_1d,c4_ifft_1d,&
        c_psd_1d, c_psd_1d_f,&
        f_psd_1d, f_psd_1d_f,&
        d_psd_1d, d_psd_1d_f, d_cor_1d,&
@@ -102,7 +102,7 @@ module lib_spectral
   end interface fft
 
   interface ifft
-     module procedure d_ifft_1d,d_ifft_2d,c_ifft_1d
+     module procedure d_ifft_1d,d_ifft_2d,c_ifft_1d,c4_ifft_1d
   end interface ifft
 
   interface psd
@@ -438,6 +438,38 @@ contains
     return
 
   end subroutine c_ifft_1d
+
+  subroutine c4_ifft_1d(sp,s,param)
+    complex(kind=4)  ,dimension(:)              ::s
+    complex(kind=4)  ,dimension(:)              ::sp
+    type(psd_param) ,optional                   ::param
+
+    type(psd_param)                             ::def_param
+    integer(kind=8)                             ::plan
+    !----------------------------------------------------
+
+    if (present(param)) then
+       def_param = param
+    end if
+
+    if (.not.def_param%allocated_ifft) then
+       !allocate fftw
+       call dfftw_plan_dft_1d(def_param%plan_ifft,&
+            size(sp,1),sp,s,FFTW_BACKWARD,FFTW_ESTIMATE)
+       def_param%allocated_ifft = .true.
+    end if
+
+    !compute fftw
+    call dfftw_execute(def_param%plan_ifft,sp,s)
+
+    !return parameter values for next call
+    if (present(param)) then
+       param = def_param
+    end if
+
+    return
+
+  end subroutine c4_ifft_1d
 
   subroutine d_ifft_2d(sp,s,param)
     complex(kind=8)  ,dimension(:,:)            ::sp

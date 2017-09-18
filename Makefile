@@ -14,8 +14,8 @@ OPT_OMP= -fopenmp
 #option de debugage :
 Debug= -Wall -fcheck=all -g
 
-IPATH=-I./ -I/usr/include
-LPATH=-L./ -L/usr/lib
+IPATH=-I./ -I/usr/local/include
+LPATH=-L./ -L/usr/local/lib
 
 CC = gfortran -O2 $(IPATH)
 CC += $(OPT_OMP)
