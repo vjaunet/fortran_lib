@@ -183,6 +183,10 @@ contains
        def_param = param
     end if
 
+    if (size(s) /= def_param%nfft) then
+       write(06,*) 'FFT computed on ',def_param%nfft,' points'
+    end if
+
     if (.not.def_param%allocated_fft) then
        !allocate fftw
        call dfftw_plan_dft_1d(def_param%plan,&
@@ -223,6 +227,10 @@ contains
 
     if (present(param)) then
        def_param = param
+    end if
+
+    if (size(s) /= def_param%nfft) then
+       write(06,*) 'FFT computed on ',def_param%nfft,' points'
     end if
 
     if (.not.def_param%allocated_fft) then
@@ -305,6 +313,7 @@ contains
 
     deallocate(s8)
     deallocate(sp8)
+
     return
 
   end subroutine f_fft_1d
