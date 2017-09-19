@@ -234,6 +234,7 @@ contains
     end if
 
     !compute fftw
+    sp = cmplx(0.d0,0.d0)
     call dfftw_execute(def_param%plan,s,sp)
 
     !normalization
@@ -283,39 +284,27 @@ contains
     complex(kind=4)  ,dimension(:)              ::sp
     type(psd_param) ,optional                   ::param
 
+    complex(kind=8)  ,dimension(:) ,allocatable ::sp8
+    real(kind=8)     ,dimension(:) ,allocatable ::s8
     type(psd_param)                             ::def_param
-    integer(kind=8)                             ::plan
     !----------------------------------------------------
 
-    if (size(sp,1) /= size(s)/2+1) then
-       STOP 'FFT : size(sp) must be size(s)/2+1.'
-    end if
+    allocate(s8(size(s)))
+    allocate(sp8(size(sp)))
+
+    s8 = real(s,kind=8)
+    sp8 = cmplx(0.d0,0.d0)
 
     if (present(param)) then
        def_param = param
     end if
 
-    if (.not.def_param%allocated_fft) then
-       !allocate fftw
-       call dfftw_plan_dft_r2c_1d(def_param%plan,&
-            def_param%nfft,s,sp,FFTW_ESTIMATE)
-       !set allocated to true for next call
-       def_param%allocated_fft = .true.
-    end if
+    call d_fft_1d(s8,sp8,def_param)
 
-    !compute fftw
-    call dfftw_execute(def_param%plan,s,sp)
+    sp = cmplx(real(sp8),aimag(sp8))
 
-    !normalization
-    if (def_param%norm_fft) then
-       sp = sp/def_param%nfft
-    end if
-
-    !return parameter values for next call
-    if (present(param)) then
-       param = def_param
-    end if
-
+    deallocate(s8)
+    deallocate(sp8)
     return
 
   end subroutine f_fft_1d
@@ -442,37 +431,30 @@ contains
 
   subroutine c4_ifft_1d(sp,s,param)
     complex(kind=4)  ,dimension(:)              ::s
-    complex(kind=8)  ,dimension(:) ,allocatable ::s8
     complex(kind=4)  ,dimension(:)              ::sp
     type(psd_param) ,optional                   ::param
 
+    complex(kind=8)  ,dimension(:) ,allocatable ::s8
+    complex(kind=8)  ,dimension(:) ,allocatable ::sp8
     type(psd_param)                             ::def_param
-    integer(kind=8)                             ::plan
     !----------------------------------------------------
 
     if (present(param)) then
        def_param = param
     end if
 
-    allocate(s8(SIZE(s)))
+    allocate(s8(size(s)))
+    allocate(sp8(size(sp)))
 
-    if (.not.def_param%allocated_ifft) then
-       !allocate fftw
-       call dfftw_plan_dft_1d(def_param%plan_ifft,&
-            size(sp,1),real(sp,kind=8),s8,FFTW_BACKWARD,FFTW_ESTIMATE)
-       def_param%allocated_ifft = .true.
-    end if
+    sp8 = cmplx(real(sp),aimag(sp))
+    s8 = cmplx(0.d0,0.d0)
 
-    !compute fftw
-    call dfftw_execute(def_param%plan_ifft,sp,s8)
+    call c_fft_1d(sp8,s8,def_param)
 
-    !return parameter values for next call
-    if (present(param)) then
-       param = def_param
-    end if
+    s=cmplx(real(s8),aimag(s8))
 
-    s=real(s8)
     deallocate(s8)
+    deallocate(sp8)
 
     return
 
@@ -807,7 +789,6 @@ contains
     end if
 
     !call psd
-
     call d_psd_1d(s,sp,def_param)
 
     !free some memory
@@ -860,7 +841,6 @@ contains
     end if
 
     !call psd
-
     call d_psd_1d(dble(s),sp,def_param)
 
     !free some memory
