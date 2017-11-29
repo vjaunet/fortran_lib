@@ -5,7 +5,7 @@ News :
 ------
 Since Intel stopped there non-commercial license, the library is ported to the GNU FORTRAN compiler gfortran.
 The Intel compiler should still be supported.
-The library compiles with gfortran from Homebrew gcc 6.1.0_1. GCC 7.x not yet tested
+The library compiles with gfortran from Homebrew gcc 6.1.0_1 and GCC 7.2.
 
 Requirement :
 -------------
