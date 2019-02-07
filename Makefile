@@ -14,7 +14,7 @@ OPT_OMP= -fopenmp
 #option de debugage :
 Debug= -Wall -fcheck=all -g
 
-IPATH=-I./ -I/usr/include
+IPATH=-I./ -I/usr/include -I/usr/local/Cellar/fftw/3.3.8/include/
 LPATH=-L./ -L/usr/lib/x86_64-linux-gnu
 
 CC = gfortran -O2 $(IPATH)
