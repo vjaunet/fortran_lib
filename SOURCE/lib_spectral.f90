@@ -107,7 +107,7 @@ module lib_spectral
   end interface ifft
 
   interface psd
-     module procedure c_psd_1d, c_psd_1d_f, d_psd_1d, d_psd_1d_f, &
+     module procedure c_psd_1d, c_psd_1d_f, c4_psd_1d, c4_psd_1d_f, d_psd_1d, d_psd_1d_f, &
           f_psd_1d, f_psd_1d_f, d_psd_lda
   end interface psd
 
@@ -642,6 +642,16 @@ contains
 
   end subroutine c_psd_1d
 
+  subroutine c4_psd_1d (s,sp,param)
+    complex(kind=4)  ,dimension(:)              ::s
+    complex(kind=8)  ,dimension(:)              ::sp
+    type(psd_param) ,optional                   ::param
+    !--------------------------------------------------------
+
+    call c_psd_1d(cmplx(s,kind=8),sp,param)
+
+  end  subroutine c4_psd_1d
+
   subroutine d_psd_1d (s,sp,param)
     real(kind=8)     ,dimension(:)              ::s
     complex(kind=8)  ,dimension(:)              ::sp
@@ -783,6 +793,34 @@ contains
     return
 
   end subroutine c_psd_1d_f
+
+  subroutine c4_psd_1d_f (s,f,sp,param)
+    complex(kind=4)  ,dimension(:)              ::s
+    complex(kind=8)  ,dimension(:)              ::sp
+    type(psd_param)  ,optional                  ::param
+    real(kind=8)     ,dimension(:)              ::f
+
+    type(psd_param)                             ::def_param
+    !---------------------------------------------------
+
+    if (present(param)) then
+       def_param = param
+    end if
+
+    !call psd
+    call c4_psd_1d(s,sp,def_param)
+
+    !free memory
+    call free_fft(def_param)
+
+    !fill f in
+    call fillf(f,def_param)
+
+    return
+
+  end subroutine c4_psd_1d_f
+
+
 
   subroutine d_psd_1d_f (s,f,sp,param)
     real(kind=8)     ,dimension(:)              ::s
