@@ -32,6 +32,7 @@ MODULE LIB_PRESS_DATA
 
      procedure  :: create => press_io_constructor
      procedure  :: read_bin => press_io_read
+     procedure  :: get_fluctuations => press_get_fluc
      procedure  :: write_bin => press_io_write
      procedure  :: read_data => press_io_read
      procedure  :: write_data => press_io_write
@@ -83,6 +84,19 @@ contains
     if (allocated(this%x)) deallocate(this%x)
 
   end subroutine press_destroy
+
+  subroutine press_get_fluc(this)
+    class(PRESSdata)              ::this
+    integer                       ::ic
+    !----------------------------------------------
+
+    do ic=1,this%nsensors
+       this%p(:,ic) =  this%p(:,ic) -&
+            sum(this%p(:,ic))/this%nsamples
+    end do
+
+    return
+  end subroutine press_get_fluc
 
   subroutine press_io_read(p,ifile)
     class(PRESSdata)              ::p
