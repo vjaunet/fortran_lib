@@ -1,6 +1,11 @@
 module lib_spectral
   implicit none
+<<<<<<< HEAD
   include 'fftw3'
+=======
+  include 'fftw3.f'
+
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
   !*==================================================================
   !*
   !*
@@ -10,11 +15,19 @@ module lib_spectral
   !*       author : Vincent Jaunet
   !*       date   : 11-06-2014
   !*       license: GPL v3.0
+<<<<<<< HEAD
   !*       contact: vincent[dot]jaunet[at]gmail[dot]com
   !*-------------------------------------------------------------------
   !*
   !* Requires: fftw3 to be intalled and linked during compilation
   !* TO DO : Coherence and Bi-Coherence
+=======
+  !*       contact: vincent[dot]jaunet[at]hotmail[dot]fr
+  !*-------------------------------------------------------------------
+  !*
+  !* Requires: fftw3 to be intalled and linked during compilation
+  !* TO DO : Bi-Coherence
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
   !*
   !* Contains :
   !*
@@ -48,6 +61,7 @@ module lib_spectral
   integer(kind=8), private ::i,j,k,in,if,ic
 
   type psd_param
+<<<<<<< HEAD
      integer(kind=8)                ::nfft=1024
      integer(kind=8)                ::overlap=512
      character(len=1)               ::window='H'
@@ -56,10 +70,24 @@ module lib_spectral
      real(kind=8)                   ::fmin=0.5d0   !min frequency to be computed (slotting)
      logical                        ::allocated_fft =.false.
      logical                        ::allocated_ifft=.false.
+=======
+
+
+     integer(kind=8)                ::nfft=1024
+     integer(kind=8)                ::overlap=512
+     character(len=1)               ::window='H'
+     ! available window type : box = 'B', Hamming = 'H', Hanning 'A'
+
+     real(kind=8)                   ::fe=1.d0      !sampling freq
+     real(kind=8)                   ::fmin=0.5d0   !min frequency to be computed (slotting)
+
+     !optionnal cheking and normalizing parameters
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
      logical                        ::norm_fft=.true.
      logical                        ::rms_norm=.false.
      logical                        ::check_pval=.false.
      logical                        ::detrend=.false.
+<<<<<<< HEAD
      integer(kind=8)                ::plan=0
      integer(kind=8)                ::plan_ifft=0
   end type psd_param
@@ -69,6 +97,30 @@ module lib_spectral
   private :: c_fft_1d,d_fft_1d,d_fft_1d_f,&
        d_ifft_1d,d_ifft_2d,c_ifft_1d,&
        c_psd_1d, c_psd_1d_f,&
+=======
+
+     !internal varaibles attached to the type------
+     !faster processing is expecting from fftw by using these
+     logical                        ::allocated_fft =.false.
+     logical                        ::allocated_ifft=.false.
+     integer(kind=8)                ::plan=0
+     integer(kind=8)                ::plan_ifft=0
+
+
+     ! TO DO : NICE TO HAVE TYPE BOUNDED PROCEDURES
+     ! contains
+     !   !! Type Bounded Procedures
+     !   procedure  :: psd => c_psd_1d, c_psd_1d_f, d_psd_1d, d_psd_1d_f, d_psd_lda
+
+  end type psd_param
+
+  public  :: fft, ifft, psd, cor, xpsd, xcor, mscohere, unwrap_phase, fillf
+
+  private :: c_fft_1d,f_fft_1d,d_fft_1d,d_fft_1d_f,&
+       d_ifft_1d,d_ifft_2d,c_ifft_1d,c4_ifft_1d,&
+       c_psd_1d, c_psd_1d_f,&
+       f_psd_1d, f_psd_1d_f,&
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        d_psd_1d, d_psd_1d_f, d_cor_1d,&
        xcor_1d,&
        d_xpsd_1d,d_xpsd_1d_f,&
@@ -81,6 +133,7 @@ module lib_spectral
        unwrap_phase_d,unwrap_phase_f
 
   interface fft
+<<<<<<< HEAD
      module procedure d_fft_1d,d_fft_1d_f,d_fft_2d
   end interface fft
 
@@ -90,6 +143,19 @@ module lib_spectral
 
   interface psd
      module procedure c_psd_1d, c_psd_1d_f, d_psd_1d, d_psd_1d_f, d_psd_lda
+=======
+     module procedure f_fft_1d,d_fft_1d,d_fft_1d_f,&
+          c_fft_1d, d_fft_2d
+  end interface fft
+
+  interface ifft
+     module procedure d_ifft_1d,d_ifft_2d,c_ifft_1d,c4_ifft_1d
+  end interface ifft
+
+  interface psd
+     module procedure c_psd_1d, c_psd_1d_f, c4_psd_1d, c4_psd_1d_f, d_psd_1d, d_psd_1d_f, &
+          f_psd_1d, f_psd_1d_f, d_psd_lda
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
   end interface psd
 
   interface cor
@@ -122,9 +188,15 @@ contains
     type(psd_param)                             ::param
     !----------------------------------------------------
 
+<<<<<<< HEAD
     if (param.allocated_fft) then
        !free fftw
        call dfftw_destroy_plan(param.plan)
+=======
+    if (param%allocated_fft) then
+       !free fftw
+       call dfftw_destroy_plan(param%plan)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
     end if
 
@@ -134,9 +206,15 @@ contains
     type(psd_param)                             ::param
     !----------------------------------------------------
 
+<<<<<<< HEAD
     if (param.allocated_ifft) then
        !free ifftw
        call dfftw_destroy_plan(param.plan_ifft)
+=======
+    if (param%allocated_ifft) then
+       !free ifftw
+       call dfftw_destroy_plan(param%plan_ifft)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
     end if
 
@@ -164,6 +242,7 @@ contains
        def_param = param
     end if
 
+<<<<<<< HEAD
     if (.not.def_param.allocated_fft) then
        !allocate fftw
        call dfftw_plan_dft_1d(def_param.plan,&
@@ -178,6 +257,26 @@ contains
     !normalization
     if (def_param.norm_fft) then
        sp = sp/def_param.nfft
+=======
+    if (size(s) /= def_param%nfft) then
+       write(06,*) 'FFT computed on ',def_param%nfft,' points'
+    end if
+
+    if (.not.def_param%allocated_fft) then
+       !allocate fftw
+       call dfftw_plan_dft_1d(def_param%plan,&
+            def_param%nfft,s,sp,FFTW_FORWARD,FFTW_ESTIMATE)
+       !set allocated to true for next call
+       def_param%allocated_fft = .true.
+    end if
+
+    !compute fftw
+    call dfftw_execute(def_param%plan,s,sp)
+
+    !normalization
+    if (def_param%norm_fft) then
+       sp = sp/def_param%nfft
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     end if
 
     !return parameter values for next call
@@ -206,6 +305,7 @@ contains
        def_param = param
     end if
 
+<<<<<<< HEAD
     if (.not.def_param.allocated_fft) then
        !allocate fftw
        call dfftw_plan_dft_r2c_1d(def_param.plan,&
@@ -220,6 +320,27 @@ contains
     !normalization
     if (def_param.norm_fft) then
        sp = sp/def_param.nfft
+=======
+    if (size(s) /= def_param%nfft) then
+       write(06,*) 'FFT computed on ',def_param%nfft,' points'
+    end if
+
+    if (.not.def_param%allocated_fft) then
+       !allocate fftw
+       call dfftw_plan_dft_r2c_1d(def_param%plan,&
+            def_param%nfft,s,sp,FFTW_ESTIMATE)
+       !set allocated to true for next call
+       def_param%allocated_fft = .true.
+    end if
+
+    !compute fftw
+    sp = cmplx(0.d0,0.d0)
+    call dfftw_execute(def_param%plan,s,sp)
+
+    !normalization
+    if (def_param%norm_fft) then
+       sp = sp/def_param%nfft
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     end if
 
     !return parameter values for next call
@@ -259,6 +380,39 @@ contains
 
   end subroutine d_fft_1d_f
 
+<<<<<<< HEAD
+=======
+  subroutine f_fft_1d(s, sp, param)
+    real(kind=4)     ,dimension(:)              ::s
+    complex(kind=4)  ,dimension(:)              ::sp
+    type(psd_param) ,optional                   ::param
+
+    complex(kind=8)  ,dimension(:) ,allocatable ::sp8
+    real(kind=8)     ,dimension(:) ,allocatable ::s8
+    type(psd_param)                             ::def_param
+    !----------------------------------------------------
+
+    allocate(s8(size(s)))
+    allocate(sp8(size(sp)))
+
+    s8 = real(s,kind=8)
+    sp8 = cmplx(0.d0,0.d0)
+
+    if (present(param)) then
+       def_param = param
+    end if
+
+    call d_fft_1d(s8,sp8,def_param)
+
+    sp = cmplx(real(sp8),aimag(sp8))
+
+    deallocate(s8)
+    deallocate(sp8)
+
+    return
+
+  end subroutine f_fft_1d
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
   subroutine d_fft_2d(s, sp, param)
     real(kind=8)    ,dimension(:,:)             ::s
@@ -281,21 +435,37 @@ contains
        def_param = param
     end if
 
+<<<<<<< HEAD
     if (.not.def_param.allocated_fft) then
        !allocate fftw
        call dfftw_plan_dft_2d(def_param.plan,&
             nx,ny,sp,sp,FFTW_FORWARD,FFTW_ESTIMATE)
        !set allocated to true for next call
        def_param.allocated_fft = .true.
+=======
+    if (.not.def_param%allocated_fft) then
+       !allocate fftw
+       call dfftw_plan_dft_2d(def_param%plan,&
+            nx,ny,sp,sp,FFTW_FORWARD,FFTW_ESTIMATE)
+       !set allocated to true for next call
+       def_param%allocated_fft = .true.
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     end if
 
     !compute fftw
     !passing S into FFTW
     sp = s
+<<<<<<< HEAD
     call dfftw_execute_dft(def_param.plan,sp,sp)
 
     !normalization
     if (def_param.norm_fft) then
+=======
+    call dfftw_execute_dft(def_param%plan,sp,sp)
+
+    !normalization
+    if (def_param%norm_fft) then
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        sp = sp/dble(nx*ny)
     end if
 
@@ -329,6 +499,7 @@ contains
        def_param = param
     end if
 
+<<<<<<< HEAD
     if (.not.def_param.allocated_ifft) then
        !allocate fftw
        call dfftw_plan_dft_c2r_1d(def_param.plan_ifft,&
@@ -338,6 +509,17 @@ contains
 
     !compute fftw
     call dfftw_execute(def_param.plan_ifft,sp,s)
+=======
+    if (.not.def_param%allocated_ifft) then
+       !allocate fftw
+       call dfftw_plan_dft_c2r_1d(def_param%plan_ifft,&
+            size(sp,1),sp,s,FFTW_ESTIMATE)
+       def_param%allocated_ifft = .true.
+    end if
+
+    !compute fftw
+    call dfftw_execute(def_param%plan_ifft,sp,s)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
     !return parameter values for next call
     if (present(param)) then
@@ -361,6 +543,7 @@ contains
        def_param = param
     end if
 
+<<<<<<< HEAD
     if (.not.def_param.allocated_ifft) then
        !allocate fftw
        call dfftw_plan_dft_1d(def_param.plan_ifft,&
@@ -370,6 +553,17 @@ contains
 
     !compute fftw
     call dfftw_execute(def_param.plan_ifft,sp,s)
+=======
+    if (.not.def_param%allocated_ifft) then
+       !allocate fftw
+       call dfftw_plan_dft_1d(def_param%plan_ifft,&
+            size(sp,1),sp,s,FFTW_BACKWARD,FFTW_ESTIMATE)
+       def_param%allocated_ifft = .true.
+    end if
+
+    !compute fftw
+    call dfftw_execute(def_param%plan_ifft,sp,s)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
     !return parameter values for next call
     if (present(param)) then
@@ -380,6 +574,40 @@ contains
 
   end subroutine c_ifft_1d
 
+<<<<<<< HEAD
+=======
+  subroutine c4_ifft_1d(sp,s,param)
+    complex(kind=4)  ,dimension(:)              ::s
+    complex(kind=4)  ,dimension(:)              ::sp
+    type(psd_param) ,optional                   ::param
+
+    complex(kind=8)  ,dimension(:) ,allocatable ::s8
+    complex(kind=8)  ,dimension(:) ,allocatable ::sp8
+    type(psd_param)                             ::def_param
+    !----------------------------------------------------
+
+    if (present(param)) then
+       def_param = param
+    end if
+
+    allocate(s8(size(s)))
+    allocate(sp8(size(sp)))
+
+    sp8 = cmplx(real(sp),aimag(sp))
+    s8 = cmplx(0.d0,0.d0)
+
+    call c_fft_1d(sp8,s8,def_param)
+
+    s=cmplx(real(s8),aimag(s8))
+
+    deallocate(s8)
+    deallocate(sp8)
+
+    return
+
+  end subroutine c4_ifft_1d
+
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
   subroutine d_ifft_2d(sp,s,param)
     complex(kind=8)  ,dimension(:,:)            ::sp
     real(kind=8)     ,dimension(:,:)            ::s
@@ -396,6 +624,7 @@ contains
     nx=size(sp,1)
     ny=size(sp,2)
 
+<<<<<<< HEAD
     if (.not.def_param.allocated_ifft) then
        !allocate fftw
        call dfftw_plan_dft_2d(def_param.plan_ifft,&
@@ -405,6 +634,17 @@ contains
 
     !compute fftw
     call dfftw_execute_dft(def_param.plan_ifft,sp,sp)
+=======
+    if (.not.def_param%allocated_ifft) then
+       !allocate fftw
+       call dfftw_plan_dft_2d(def_param%plan_ifft,&
+            nx,ny,sp,sp,FFTW_BACKWARD,FFTW_ESTIMATE)
+       def_param%allocated_ifft = .true.
+    end if
+
+    !compute fftw
+    call dfftw_execute_dft(def_param%plan_ifft,sp,sp)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
     !get real value back
     s = dble(sp)
@@ -453,7 +693,11 @@ contains
        def_param = param
     end if
 
+<<<<<<< HEAD
     if (size(sp) .ne. def_param.nfft) then
+=======
+    if (size(sp) .ne. def_param%nfft) then
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        write(06,*) 'sp size invalid : sp(1:nfft)'
        stop
     end if
@@ -465,29 +709,50 @@ contains
     ! s(:)  = s(:) - sigmoy
 
     !initialization
+<<<<<<< HEAD
     allocate(window(def_param.nfft))
     call get_window(def_param,window,powfen2)
 
     allocate(xk(def_param.nfft))
     allocate(sk(def_param.nfft))
+=======
+    allocate(window(def_param%nfft))
+    call get_window(def_param,window,powfen2)
+
+    allocate(xk(def_param%nfft))
+    allocate(sk(def_param%nfft))
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     sp = 0.d0
     sk = 0.d0
     ic = 0
     is_deb = 1
+<<<<<<< HEAD
     is_fin = def_param.nfft
+=======
+    is_fin = def_param%nfft
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
     !start the psd processing
     do while(is_fin.le.nn)
        !Loop on the diffrent input signals,
        !simultneously acquired
        do i=is_deb,is_fin
+<<<<<<< HEAD
           xk(i-ic*def_param.overlap) = s(i)
+=======
+          xk(i-ic*def_param%overlap) = s(i)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        end do
 
        ! ?? Check wether it makes sens in Complex plane ?
        ! !removing trend
+<<<<<<< HEAD
        ! if (def_param.detrend) then
        !    call rmlintrend(xk,def_param.nfft)
+=======
+       ! if (def_param%detrend) then
+       !    call rmlintrend(xk,def_param%nfft)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        ! end if
 
        !windowing
@@ -500,8 +765,13 @@ contains
        sp(:) = sp(:) + sk(:)*dconjg(sk)
 
        !Get new block
+<<<<<<< HEAD
        is_deb = is_deb+def_param.overlap
        is_fin = is_fin+def_param.overlap
+=======
+       is_deb = is_deb+def_param%overlap
+       is_fin = is_fin+def_param%overlap
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        ic     = ic + 1
     end do
 
@@ -518,6 +788,7 @@ contains
     sp = sp/dble(ic)
 
     !energy per hertz
+<<<<<<< HEAD
     sp = sp/def_param.fe*dble(def_param.nfft)
 
     !check the parseval theorem if wanted
@@ -531,19 +802,44 @@ contains
        end do
        rms = rms + 0.5d0*abs(sp(def_param.nfft))*&
             def_param.fe/dble(def_param.nfft)
+=======
+    sp = sp/def_param%fe*dble(def_param%nfft)
+
+    !check the parseval theorem if wanted
+    if (def_param%check_pval .eqv. .true.) then
+       rms = 0.d0
+       rms = rms + 0.5d0*abs(sp(1))*&
+            def_param%fe/dble(def_param%nfft)
+       do if=2,def_param%nfft-1
+          rms = rms + 1.d0*abs(sp(if))*&
+               def_param%fe/dble(def_param%nfft)
+       end do
+       rms = rms + 0.5d0*abs(sp(def_param%nfft))*&
+            def_param%fe/dble(def_param%nfft)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        write(06,'(a,e15.3,2x,e15.3)')'Parseval rms, sum(psd*df) : ',sigrms,sqrt(rms)
     end if
 
     !normalize output power
+<<<<<<< HEAD
     if (def_param.rms_norm .and. sigrms /= 0.d0) then
+=======
+    if (def_param%rms_norm .and. sigrms /= 0.d0) then
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        sp = sp/(sigrms**2)
     end if
 
     !fliping the spectrum -> from - to +
     allocate(sp_tmp(size(sp,1)/2))
+<<<<<<< HEAD
     sp_tmp(:) =  sp(1:def_param.nfft/2)
     sp(1:def_param.nfft/2) = sp(def_param.nfft/2+1:def_param.nfft)
     sp(def_param.nfft/2+1:def_param.nfft) = sp_tmp(:)
+=======
+    sp_tmp(:) =  sp(1:def_param%nfft/2)
+    sp(1:def_param%nfft/2) = sp(def_param%nfft/2+1:def_param%nfft)
+    sp(def_param%nfft/2+1:def_param%nfft) = sp_tmp(:)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     deallocate(sp_tmp)
 
     !Recovering original signal
@@ -553,6 +849,19 @@ contains
 
   end subroutine c_psd_1d
 
+<<<<<<< HEAD
+=======
+  subroutine c4_psd_1d (s,sp,param)
+    complex(kind=4)  ,dimension(:)              ::s
+    complex(kind=8)  ,dimension(:)              ::sp
+    type(psd_param) ,optional                   ::param
+    !--------------------------------------------------------
+
+    call c_psd_1d(cmplx(s,kind=8),sp,param)
+
+  end  subroutine c4_psd_1d
+
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
   subroutine d_psd_1d (s,sp,param)
     real(kind=8)     ,dimension(:)              ::s
     complex(kind=8)  ,dimension(:)              ::sp
@@ -577,7 +886,11 @@ contains
        def_param = param
     end if
 
+<<<<<<< HEAD
     if (size(sp) .ne. def_param.nfft/2+1) then
+=======
+    if (size(sp) .ne. def_param%nfft/2+1) then
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        write(06,*) 'sp size invalid : sp(1:nfft/2+1)'
        stop
     end if
@@ -589,16 +902,28 @@ contains
     s(:)  = s(:) - sigmoy
 
     !initialization
+<<<<<<< HEAD
     allocate(window(def_param.nfft))
     call get_window(def_param,window,powfen2)
 
     allocate(xk(def_param.nfft))
     allocate(sk(def_param.nfft/2+1))
+=======
+    allocate(window(def_param%nfft))
+    call get_window(def_param,window,powfen2)
+
+    allocate(xk(def_param%nfft))
+    allocate(sk(def_param%nfft/2+1))
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     sp = 0.d0
     sk = 0.d0
     ic = 0
     is_deb = 1
+<<<<<<< HEAD
     is_fin = def_param.nfft
+=======
+    is_fin = def_param%nfft
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
 
     !start the psd processing
@@ -606,12 +931,21 @@ contains
        !Loop on the diffrent input signals,
        !simultneously acquired
        do i=is_deb,is_fin
+<<<<<<< HEAD
           xk(i-ic*def_param.overlap) = s(i)
        end do
 
        ! !removing trend
        if (def_param.detrend) then
           call rmlintrend(xk,def_param.nfft)
+=======
+          xk(i-ic*def_param%overlap) = s(i)
+       end do
+
+       ! !removing trend
+       if (def_param%detrend) then
+          call rmlintrend(xk,def_param%nfft)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        end if
 
        !windowing
@@ -623,8 +957,13 @@ contains
        sp(:) = sp(:) + sk(:)*dconjg(sk)
 
        !Get new block
+<<<<<<< HEAD
        is_deb = is_deb+def_param.overlap
        is_fin = is_fin+def_param.overlap
+=======
+       is_deb = is_deb+def_param%overlap
+       is_fin = is_fin+def_param%overlap
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        ic     = ic + 1
     end do
 
@@ -641,6 +980,7 @@ contains
     sp = sp/dble(ic)
 
     !energy per hertz
+<<<<<<< HEAD
     sp = sp/def_param.fe*dble(def_param.nfft)
 
     !check the parseval theorem if wanted
@@ -654,11 +994,30 @@ contains
        end do
        rms = rms + 0.5d0*abs(sp(def_param.nfft/2+1))*&
             def_param.fe/dble(def_param.nfft)
+=======
+    sp = sp/def_param%fe*dble(def_param%nfft)
+
+    !check the parseval theorem if wanted
+    if (def_param%check_pval .eqv. .true.) then
+       rms = 0.d0
+       rms = rms + 0.5d0*abs(sp(1))*&
+            def_param%fe/dble(def_param%nfft)
+       do if=2,def_param%nfft/2
+          rms = rms + 1.d0*abs(sp(if))*&
+               def_param%fe/dble(def_param%nfft)
+       end do
+       rms = rms + 0.5d0*abs(sp(def_param%nfft/2+1))*&
+            def_param%fe/dble(def_param%nfft)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        write(06,'(a,e15.3,2x,e15.3)')'Parseval rms, sum(psd*df) : ',sigrms,sqrt(rms)
     end if
 
     !normalize output power
+<<<<<<< HEAD
     if (def_param.rms_norm .and. sigrms /= 0.d0) then
+=======
+    if (def_param%rms_norm .and. sigrms /= 0.d0) then
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        sp = sp/(sigrms**2)
     end if
 
@@ -695,6 +1054,37 @@ contains
 
   end subroutine c_psd_1d_f
 
+<<<<<<< HEAD
+=======
+  subroutine c4_psd_1d_f (s,f,sp,param)
+    complex(kind=4)  ,dimension(:)              ::s
+    complex(kind=8)  ,dimension(:)              ::sp
+    type(psd_param)  ,optional                  ::param
+    real(kind=8)     ,dimension(:)              ::f
+
+    type(psd_param)                             ::def_param
+    !---------------------------------------------------
+
+    if (present(param)) then
+       def_param = param
+    end if
+
+    !call psd
+    call c4_psd_1d(s,sp,def_param)
+
+    !free memory
+    call free_fft(def_param)
+
+    !fill f in
+    call fillf(f,def_param)
+
+    return
+
+  end subroutine c4_psd_1d_f
+
+
+
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
   subroutine d_psd_1d_f (s,f,sp,param)
     real(kind=8)     ,dimension(:)              ::s
     complex(kind=8)  ,dimension(:)              ::sp
@@ -721,10 +1111,68 @@ contains
 
   end subroutine d_psd_1d_f
 
+<<<<<<< HEAD
+=======
+  subroutine f_psd_1d_f (s,f,sp,param)
+    real(kind=4)     ,dimension(:)              ::s
+    complex(kind=8)  ,dimension(:)              ::sp
+    type(psd_param)  ,optional                  ::param
+    real(kind=8)     ,dimension(:)              ::f
+
+    type(psd_param)                             ::def_param
+    !---------------------------------------------------
+
+    if (present(param)) then
+       def_param = param
+    end if
+
+    !call psd
+
+    call d_psd_1d(dble(s),sp,def_param)
+
+    !free some memory
+    call free_fft(def_param)
+
+    !fill in f
+    call fillf(f,def_param)
+
+    return
+
+  end subroutine f_psd_1d_f
+
+  subroutine f_psd_1d (s,sp,param)
+    real(kind=4)     ,dimension(:)              ::s
+    complex(kind=8)  ,dimension(:)              ::sp
+    type(psd_param)  ,optional                  ::param
+
+    type(psd_param)                             ::def_param
+    !---------------------------------------------------
+
+    if (present(param)) then
+       def_param = param
+    end if
+
+    !call psd
+    call d_psd_1d(dble(s),sp,def_param)
+
+    !free some memory
+    call free_fft(def_param)
+
+    return
+
+  end subroutine f_psd_1d
+
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
   !----------------------------------------------------
   !*   END PSD
   !----------------------------------------------------
 
+<<<<<<< HEAD
+=======
+
+
+
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
   !----------------------------------------------------
   !*   Cross-PSD
   !----------------------------------------------------
@@ -754,7 +1202,11 @@ contains
        def_param = param
     end if
 
+<<<<<<< HEAD
     if (size(sp) .ne. def_param.nfft/2+1) then
+=======
+    if (size(sp) .ne. def_param%nfft/2+1) then
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        write(06,*) 'sp size invalid : sp(1:nfft/2+1) in d_xpsd_1d'
        stop
     end if
@@ -771,16 +1223,27 @@ contains
     s2(:)  = s2(:) - sigmoy2
 
     !initialization
+<<<<<<< HEAD
     allocate(window(def_param.nfft))
     allocate(xk(def_param.nfft))
     allocate(sk(def_param.nfft/2+1))
     allocate(sk_tmp(def_param.nfft/2+1))
+=======
+    allocate(window(def_param%nfft))
+    allocate(xk(def_param%nfft))
+    allocate(sk(def_param%nfft/2+1))
+    allocate(sk_tmp(def_param%nfft/2+1))
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     sp = 0.d0
     sk = 0.d0
     sk_tmp = 0.d0
     ic = 0
     is_deb = 1
+<<<<<<< HEAD
     is_fin = def_param.nfft
+=======
+    is_fin = def_param%nfft
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
     call get_window(def_param,window,powfen2)
 
@@ -789,11 +1252,19 @@ contains
 
        !extract sample
        do i=is_deb,is_fin
+<<<<<<< HEAD
           xk(i-ic*def_param.overlap) = s1(i)
        end do
 
        !removing trend s1
        !call rmlintrend(xk,def_param.nfft)
+=======
+          xk(i-ic*def_param%overlap) = s1(i)
+       end do
+
+       !removing trend s1
+       !call rmlintrend(xk,def_param%nfft)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
        !windowing
        xk(:) = xk(:) * window(:)
@@ -804,11 +1275,19 @@ contains
 
        !extract sample
        do i=is_deb,is_fin
+<<<<<<< HEAD
           xk(i-ic*def_param.overlap) = s2(i)
        end do
 
        !removing trend s2
        !call rmlintrend(xk,def_param.nfft)
+=======
+          xk(i-ic*def_param%overlap) = s2(i)
+       end do
+
+       !removing trend s2
+       !call rmlintrend(xk,def_param%nfft)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
        !windowing
        xk(:) = xk(:) * window(:)
@@ -820,8 +1299,13 @@ contains
        sp = sp + sk_tmp*dconjg(sk)
 
        !Get new block
+<<<<<<< HEAD
        is_deb = is_deb+def_param.overlap
        is_fin = is_fin+def_param.overlap
+=======
+       is_deb = is_deb+def_param%overlap
+       is_fin = is_fin+def_param%overlap
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        ic     = ic + 1
     end do
 
@@ -840,6 +1324,7 @@ contains
     sp = sp/dble(ic)
 
     !energy per hertz
+<<<<<<< HEAD
     sp = sp/def_param.fe*dble(def_param.nfft)
 
     if (def_param.check_pval) then
@@ -852,11 +1337,29 @@ contains
        end do
        rms = rms + 0.5d0*abs(sp(def_param.nfft/2+1))*&
             def_param.fe/dble(def_param.nfft)
+=======
+    sp = sp/def_param%fe*dble(def_param%nfft)
+
+    if (def_param%check_pval) then
+       rms = 0.d0
+       rms = rms + 0.5d0*abs(sp(1))*&
+            def_param%fe/dble(def_param%nfft)
+       do if=2,def_param%nfft/2
+          rms = rms + 1.d0*abs(sp(if))*&
+               def_param%fe/dble(def_param%nfft)
+       end do
+       rms = rms + 0.5d0*abs(sp(def_param%nfft/2+1))*&
+            def_param%fe/dble(def_param%nfft)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        write(06,'(a,e15.3,2x,e15.3)')'Parseval rms**2, sum(xpsd*df) : ', sqrt(sigrms1*sigrms2),rms
     end if
 
     !normalize output power
+<<<<<<< HEAD
     if (def_param.rms_norm &
+=======
+    if (def_param%rms_norm &
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
          .and. sigrms1 /= 0.d0 &
          .and. sigrms2 /= 0.d0) then
        sp = sp/(sigrms1*sigrms2)
@@ -916,7 +1419,11 @@ contains
        def_param = param
     end if
 
+<<<<<<< HEAD
     if (size(sp) .ne. def_param.nfft) then
+=======
+    if (size(sp) .ne. def_param%nfft) then
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        write(06,*) 'sp size invalid : sp(1:nfft) in c_xpsd_1d'
        stop
     end if
@@ -933,16 +1440,27 @@ contains
     ! s2(:)  = s2(:) - sigmoy2
 
     !initialization
+<<<<<<< HEAD
     allocate(window(def_param.nfft))
     allocate(xk(def_param.nfft))
     allocate(sk(def_param.nfft))
     allocate(sk_tmp(def_param.nfft))
+=======
+    allocate(window(def_param%nfft))
+    allocate(xk(def_param%nfft))
+    allocate(sk(def_param%nfft))
+    allocate(sk_tmp(def_param%nfft))
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     sp = 0.d0
     sk = 0.d0
     sk_tmp = 0.d0
     ic = 0
     is_deb = 1
+<<<<<<< HEAD
     is_fin = def_param.nfft
+=======
+    is_fin = def_param%nfft
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
     call get_window(def_param,window,powfen2)
 
@@ -951,11 +1469,19 @@ contains
 
        !extract sample
        do i=is_deb,is_fin
+<<<<<<< HEAD
           xk(i-ic*def_param.overlap) = s1(i)
        end do
 
        !removing trend s1
        !call rmlintrend(xk,def_param.nfft)
+=======
+          xk(i-ic*def_param%overlap) = s1(i)
+       end do
+
+       !removing trend s1
+       !call rmlintrend(xk,def_param%nfft)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
        !windowing
        xk(:) = xk(:) * window(:)
@@ -966,11 +1492,19 @@ contains
 
        !extract sample
        do i=is_deb,is_fin
+<<<<<<< HEAD
           xk(i-ic*def_param.overlap) = s2(i)
        end do
 
        !removing trend s2
        !call rmlintrend(xk,def_param.nfft)
+=======
+          xk(i-ic*def_param%overlap) = s2(i)
+       end do
+
+       !removing trend s2
+       !call rmlintrend(xk,def_param%nfft)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
        !windowing
        xk(:) = xk(:) * window(:)
@@ -982,8 +1516,13 @@ contains
        sp = sp + sk_tmp*dconjg(sk)
 
        !Get new block
+<<<<<<< HEAD
        is_deb = is_deb+def_param.overlap
        is_fin = is_fin+def_param.overlap
+=======
+       is_deb = is_deb+def_param%overlap
+       is_fin = is_fin+def_param%overlap
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        ic     = ic + 1
     end do
 
@@ -1002,6 +1541,7 @@ contains
     sp = sp/dble(ic)
 
     !energy per hertz
+<<<<<<< HEAD
     sp = sp/def_param.fe*dble(def_param.nfft)
 
     !fliping the spectrum negative to positive
@@ -1021,11 +1561,36 @@ contains
     !    end do
     !    rms = rms + 0.5d0*abs(sp(def_param.nfft/2+1))*&
     !         def_param.fe/dble(def_param.nfft)
+=======
+    sp = sp/def_param%fe*dble(def_param%nfft)
+
+    !fliping the spectrum negative to positive
+    allocate(sp_tmp(size(sp,1)/2))
+    sp_tmp(:) =  sp(1:def_param%nfft/2)
+    sp(1:def_param%nfft/2) = sp(def_param%nfft/2+1:def_param%nfft)
+    sp(def_param%nfft/2+1:def_param%nfft) = sp_tmp(:)
+    deallocate(sp_tmp)
+
+    ! if (def_param%check_pval) then
+    !    rms = 0.d0
+    !    rms = rms + 0.5d0*abs(sp(1))*&
+    !         def_param%fe/dble(def_param%nfft)
+    !    do if=2,def_param%nfft/2
+    !       rms = rms + 1.d0*abs(sp(if))*&
+    !            def_param%fe/dble(def_param%nfft)
+    !    end do
+    !    rms = rms + 0.5d0*abs(sp(def_param%nfft/2+1))*&
+    !         def_param%fe/dble(def_param%nfft)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     !    write(06,'(a,e15.3,2x,e15.3)')'Parseval rms**2, sum(xpsd*df) : ', sqrt(sigrms1*sigrms2),rms
     ! end if
 
     ! !normalize output power
+<<<<<<< HEAD
     ! if (def_param.rms_norm &
+=======
+    ! if (def_param%rms_norm &
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     !      .and. sigrms1 /= 0.d0 &
     !      .and. sigrms2 /= 0.d0) then
     !    sp = sp/(sigrms1*sigrms2)
@@ -1087,6 +1652,7 @@ contains
 
     ! Polymorphisme in Fortran.....
     select type (s1)
+<<<<<<< HEAD
     type is (complex*16)
        allocate(c1(ns))
        c1=s1
@@ -1096,15 +1662,34 @@ contains
        allocate(d1(ns))
        d1=s1
        nf = def_param.nfft/2+1
+=======
+    type is (complex(kind=8))
+       allocate(c1(ns))
+       c1=s1
+       nf = def_param%nfft
+       cplx=.true.
+    type is (real(kind=8))
+       allocate(d1(ns))
+       d1=s1
+       nf = def_param%nfft/2+1
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        cplx=.false.
     end select
 
     select type (s2)
+<<<<<<< HEAD
     type is (complex*16)
        allocate(c2(ns))
        c2=s2
        nf = def_param.nfft
     type is (real*8)
+=======
+    type is (complex(kind=8))
+       allocate(c2(ns))
+       c2=s2
+       nf = def_param%nfft
+    type is (real(kind=8))
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        allocate(d2(ns))
        d2=s2
     end select
@@ -1188,6 +1773,7 @@ contains
     end if
 
     !fill in frequencies
+<<<<<<< HEAD
     def_param.fe = def_param.fmin*real(def_param.nfft)/2
     do if=1,def_param.nfft/2+1
        f(if) = def_param.fe*&
@@ -1200,6 +1786,20 @@ contains
 
     !windowing
     allocate(window(def_param.nfft))
+=======
+    def_param%fe = def_param%fmin*real(def_param%nfft)/2
+    do if=1,def_param%nfft/2+1
+       f(if) = def_param%fe*&
+            dble(if-1)/dble(def_param%nfft)
+    end do
+
+    !compute slotting
+    allocate(tau(def_param%nfft),xcor(def_param%nfft))
+    call d_cor_lda(at,s,tau,xcor,def_param)
+
+    !windowing
+    allocate(window(def_param%nfft))
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     call get_window(def_param,window,powfen2,.true.)
     xcor(:) = xcor(:) * window(:)
 
@@ -1216,6 +1816,7 @@ contains
     sp = sp/powfen2
 
     !energy per hertz
+<<<<<<< HEAD
     sp = sp/def_param.fe*dble(def_param.nfft)
 
     !check the parseval theorem if wanted
@@ -1231,6 +1832,23 @@ contains
             def_param.fe/dble(def_param.nfft)
        write(06,'(a,e15.8,2x,e15.8)')'Parseval rms**2/sum(psd*df) : ',&
             xcor(def_param.nfft/2+1),rms
+=======
+    sp = sp/def_param%fe*dble(def_param%nfft)
+
+    !check the parseval theorem if wanted
+    if (def_param%check_pval) then
+       rms = 0.d0
+       rms = rms + 0.5d0*abs(sp(1))*&
+            def_param%fe/dble(def_param%nfft)
+       do if=2,def_param%nfft/2
+          rms = rms + 1.d0*abs(sp(if))*&
+               def_param%fe/dble(def_param%nfft)
+       end do
+       rms = rms + 0.5d0*abs(sp(def_param%nfft/2+1))*&
+            def_param%fe/dble(def_param%nfft)
+       write(06,'(a,e15.8,2x,e15.8)')'Parseval rms**2/sum(psd*df) : ',&
+            xcor(def_param%nfft/2+1),rms
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     end if
 
     !deallocation of tables
@@ -1238,7 +1856,11 @@ contains
 
     !set fft_parameters for next call
     if (present(param)) then
+<<<<<<< HEAD
        param.fe = def_param.fe
+=======
+       param%fe = def_param%fe
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     end if
 
     deallocate(window)
@@ -1274,6 +1896,7 @@ contains
     end if
 
     !fill in frequencies
+<<<<<<< HEAD
     def_param.fe = def_param.fmin*real(def_param.nfft)/2
     do if=1,def_param.nfft/2+1
        f(if) = def_param.fe*&
@@ -1286,6 +1909,20 @@ contains
 
     !windowing
     allocate(window(def_param.nfft))
+=======
+    def_param%fe = def_param%fmin*real(def_param%nfft)/2
+    do if=1,def_param%nfft/2+1
+       f(if) = def_param%fe*&
+            dble(if-1)/dble(def_param%nfft)
+    end do
+
+    !compute slotting
+    allocate(tau(def_param%nfft),xcor(def_param%nfft))
+    call d_xcor_lda(at1,s1,at2,s2,tau,xcor,def_param)
+
+    !windowing
+    allocate(window(def_param%nfft))
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     call get_window(def_param,window,powfen2,.true.)
     xcor(:) = xcor(:) * window(:)
 
@@ -1302,6 +1939,7 @@ contains
     sp = sp/powfen2
 
     !energy per hertz
+<<<<<<< HEAD
     sp = sp/def_param.fe*dble(def_param.nfft)
 
     !check the parseval theorem if wanted
@@ -1317,13 +1955,36 @@ contains
             def_param.fe/dble(def_param.nfft)
        write(06,'(a,f15.3,2x,f15.3)')'Parseval rms**2/sum(psd*df) : ',&
             xcor(def_param.nfft/2+1),rms
+=======
+    sp = sp/def_param%fe*dble(def_param%nfft)
+
+    !check the parseval theorem if wanted
+    if (def_param%check_pval) then
+       rms = 0.d0
+       rms = rms + 0.5d0*abs(sp(1))*&
+            def_param%fe/dble(def_param%nfft)
+       do if=2,def_param%nfft/2
+          rms = rms + 1.d0*abs(sp(if))*&
+               def_param%fe/dble(def_param%nfft)
+       end do
+       rms = rms + 0.5d0*abs(sp(def_param%nfft/2+1))*&
+            def_param%fe/dble(def_param%nfft)
+       write(06,'(a,f15.3,2x,f15.3)')'Parseval rms**2/sum(psd*df) : ',&
+            xcor(def_param%nfft/2+1),rms
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     end if
 
     !set fft_parameters for next call
     if (present(param)) then
+<<<<<<< HEAD
        param.plan = def_param.plan
        param.allocated_fft = .true.
        param.fe = def_param.fe
+=======
+       param%plan = def_param%plan
+       param%allocated_fft = .true.
+       param%fe = def_param%fe
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     end if
 
     !deallocation of tables
@@ -1374,12 +2035,21 @@ contains
     end if
 
     !Slotting the correlation function
+<<<<<<< HEAD
     DTslot  = 1.d0/(def_param.fmin)*2.d0/real(def_param.nfft)
     tau_max = 1.d0/(def_param.fmin)
     tau_min = -tau_max
 
     !Time delay vector of the correlation
     do k=1,def_param.nfft
+=======
+    DTslot  = 1.d0/(def_param%fmin)*2.d0/real(def_param%nfft)
+    tau_max = 1.d0/(def_param%fmin)
+    tau_min = -tau_max
+
+    !Time delay vector of the correlation
+    do k=1,def_param%nfft
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        tau(k) = tau_min + DTslot*real(k-1)
     enddo
 
@@ -1392,7 +2062,11 @@ contains
     call slottingFuzzy(nn,at,s,&
          nn,at,s,&
          tau,DTslot,xcor,&
+<<<<<<< HEAD
          def_param.nfft)
+=======
+         def_param%nfft)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
     !Normalization
     xcor = xcor * Srms**2
@@ -1441,12 +2115,21 @@ contains
     end if
 
     !Slotting the correlation function
+<<<<<<< HEAD
     DTslot  = 1.d0/(def_param.fmin)*2.d0/real(def_param.nfft)
     tau_max = 1.d0/(def_param.fmin)
     tau_min = -tau_max
 
     !Time delay vector of the correlation
     do k=1,def_param.nfft
+=======
+    DTslot  = 1.d0/(def_param%fmin)*2.d0/real(def_param%nfft)
+    tau_max = 1.d0/(def_param%fmin)
+    tau_min = -tau_max
+
+    !Time delay vector of the correlation
+    do k=1,def_param%nfft
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        tau(k) = tau_min + DTslot*real(k-1)
     enddo
 
@@ -1463,7 +2146,11 @@ contains
     call slottingFuzzy(nn1,at1,s1,&
          nn2,at2,s2,&
          tau,DTslot,xcor,&
+<<<<<<< HEAD
          def_param.nfft)
+=======
+         def_param%nfft)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
     !Normalization
     xcor = xcor*S1rms*S2rms
@@ -1647,7 +2334,11 @@ contains
 
     !fill in tau
     do i=1,nn
+<<<<<<< HEAD
        tau(i) = (dble(i)-nn/2-1)/def_param.fe
+=======
+       tau(i) = (dble(i)-nn/2-1)/def_param%fe
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     end do
 
     !compute PSD using Welch's method
@@ -1669,7 +2360,11 @@ contains
     cor_tmp(1:nn/2)    = cor(nn/2+1:nn)
 
     !norm_fft correlation
+<<<<<<< HEAD
     cor = cor_tmp*def_param.fe/real(def_param.nfft)
+=======
+    cor = cor_tmp*def_param%fe/real(def_param%nfft)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
     deallocate(cor_tmp)
 
@@ -1710,16 +2405,25 @@ contains
        def_param = param
     end if
 
+<<<<<<< HEAD
     nf = def_param.nfft
+=======
+    nf = def_param%nfft
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     ns=size(s1)
 
     !fill in tau
     do i=1,nf
+<<<<<<< HEAD
        tau(i) = (dble(i)-nf/2-1)/def_param.fe
+=======
+       tau(i) = (dble(i)-nf/2-1)/def_param%fe
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     end do
 
     ! Polymorphisme in Fortran.....
     select type (s1)
+<<<<<<< HEAD
     type is (complex*16)
        allocate(c1(ns))
        c1=s1
@@ -1729,16 +2433,44 @@ contains
        allocate(d1(ns))
        d1=s1
        nf = def_param.nfft
+=======
+    type is (complex(kind=8))
+       allocate(c1(ns))
+       c1=s1
+       nf = def_param%nfft
+       cplx=.true.
+    type is (real(kind=8))
+       allocate(d1(ns))
+       d1=s1
+       nf = def_param%nfft
+       cplx=.false.
+    type is (real(kind=4))
+       allocate(d1(ns))
+       d1=dble(s1)
+       nf = def_param%nfft
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        cplx=.false.
     end select
 
     select type (s2)
+<<<<<<< HEAD
     type is (complex*16)
        allocate(c2(ns))
        c2=s2
     type is (real*8)
        allocate(d2(ns))
        d2=s2
+=======
+    type is (complex(kind=8))
+       allocate(c2(ns))
+       c2=s2
+    type is (real(kind=8))
+       allocate(d2(ns))
+       d2=s2
+    type is (real(kind=4))
+       allocate(d2(ns))
+       d2=dble(s2)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     end select
 
     allocate(xsp_full(nf))
@@ -1771,23 +2503,37 @@ contains
     end if
 
     select type(xcor)
+<<<<<<< HEAD
     type is (complex*16)
+=======
+    type is (complex(kind=8))
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        !swap left and rigth
        xcor(nf/2+1:nf) = c_xcor_tmp(1:nf/2)
        xcor(1:nf/2)    = c_xcor_tmp(nf/2+1:nf)
        deallocate(c_xcor_tmp)
 
        !norm_fft the correlation
+<<<<<<< HEAD
        xcor =xcor*def_param.fe/real(def_param.nfft)
 
     type is (real*8)
+=======
+       xcor =xcor*def_param%fe/real(def_param%nfft)
+
+    type is (real(kind=8))
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        !swap left and rigth
        xcor(nf/2+1:nf) = d_xcor_tmp(1:nf/2)
        xcor(1:nf/2)    = d_xcor_tmp(nf/2+1:nf)
        deallocate(d_xcor_tmp)
 
        !norm_fft the correlation
+<<<<<<< HEAD
        xcor =xcor*def_param.fe/real(def_param.nfft)
+=======
+       xcor =xcor*def_param%fe/real(def_param%nfft)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
     end select
 
@@ -1836,14 +2582,23 @@ contains
     if (present(param)) then
        def_param = param
        ! we handle nfft normalisation in here
+<<<<<<< HEAD
        def_param.norm_fft = .false.
+=======
+       def_param%norm_fft = .false.
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     end if
 
     !fill in tau
     do i=1,nx
        do j=1,ny
+<<<<<<< HEAD
           tau(i,j,1) = (dble(i)-nx/2-1)/def_param.fe
           tau(i,j,2) = (dble(j)-ny/2-1)/def_param.fe
+=======
+          tau(i,j,1) = (dble(i)-nx/2-1)/def_param%fe
+          tau(i,j,2) = (dble(j)-ny/2-1)/def_param%fe
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        end do
     end do
 
@@ -1881,10 +2636,17 @@ contains
 
 
     !norm_fft the correlation
+<<<<<<< HEAD
     xcor =xcor*def_param.fe/dble(nx*ny)**2
 
     !get the correlation coefficient
     if (def_param.rms_norm) then
+=======
+    xcor =xcor*def_param%fe/dble(nx*ny)**2
+
+    !get the correlation coefficient
+    if (def_param%rms_norm) then
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        avg1 = sum(s1)/nx/ny
        avg2 = sum(s2)/nx/ny
 
@@ -1924,7 +2686,11 @@ contains
     nn = size(window)
     allocate(FTwindow(nn/2+1))
 
+<<<<<<< HEAD
     select case(type.window)
+=======
+    select case(type%window)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
     case('B')
 
@@ -1950,7 +2716,11 @@ contains
 
     !execute and scaling FFT
     call dfftw_execute(plan)
+<<<<<<< HEAD
     FTwindow = FTwindow/dble(type.nfft)
+=======
+    FTwindow = FTwindow/dble(type%nfft)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
     !free fft
     call dfftw_destroy_plan(plan)
@@ -2064,7 +2834,11 @@ contains
     do i=2,nn
        dphi = phi(i)-(phi(i-1)-phasejump)
        if(abs(dphi).gt. Pi) then
+<<<<<<< HEAD
           phasejump=phasejump-sign(2.*Pi,dphi)
+=======
+          phasejump=phasejump-sign(real(2.*Pi,8),dphi)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        end if
        phi(i)=phi(i)+phasejump
     end do
@@ -2085,7 +2859,11 @@ contains
     do i=2,nn
        dphi = phi(i)-(phi(i-1)-phasejump)
        if(abs(dphi).gt. Pi) then
+<<<<<<< HEAD
           phasejump=phasejump-sign(2.*Pi,dphi)
+=======
+          phasejump=phasejump-sign(real(2.*Pi,4),dphi)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        end if
        phi(i)=phi(i)+phasejump
     end do
@@ -2109,6 +2887,7 @@ contains
 
     if (present(param_psd)) def_param=param_psd
 
+<<<<<<< HEAD
     if (size(f) == def_param.nfft) then
        !complex fft
        do if=1,def_param.nfft
@@ -2120,6 +2899,19 @@ contains
        do if=1,def_param.nfft/2+1
           f(if) = def_param.fe*&
                dble(if-1)/dble(def_param.nfft)
+=======
+    if (size(f) == def_param%nfft) then
+       !complex fft
+       do if=1,def_param%nfft
+          f(if) = def_param%fe*&
+               dble(if-def_param%nfft/2-1)/dble(def_param%nfft)
+       end do
+    else
+       !real fft
+       do if=1,def_param%nfft/2+1
+          f(if) = def_param%fe*&
+               dble(if-1)/dble(def_param%nfft)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        end do
     end if
 

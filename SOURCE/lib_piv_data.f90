@@ -2,6 +2,7 @@ module lib_piv_data
   implicit none
 
   !=================Specification=============================
+<<<<<<< HEAD
   !
   !
   !
@@ -12,6 +13,19 @@ module lib_piv_data
   !
   !
   !
+=======
+  !*
+  !*
+  !*
+  !*  PIV data container and useful routines
+  !*
+  !*  author : Vincent Jaunet
+  !*  License: GPL v3.0
+  !*
+  !*  -11/2016 :
+  !*        v. jaunet : added support for netcdf data format
+  !*
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
   !===========================================================
 
   integer, private :: i,j,ic,is
@@ -52,6 +66,11 @@ module lib_piv_data
    contains
      procedure :: read_bin  => piv_io_read
      procedure :: write_bin => piv_io_write
+<<<<<<< HEAD
+=======
+     procedure :: read_data  => piv_io_read
+     procedure :: write_data => piv_io_write
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
      procedure :: set_x     => piv_set_x
      procedure :: replace_outlier => piv_replace_outlier
      procedure :: detect_outlier => piv_detect_outlier
@@ -71,6 +90,7 @@ contains
     class(PIVdata)                     ::datapiv
     !-----------------------------------------------
 
+<<<<<<< HEAD
     if (datapiv.typeofgrid == "C") then
 
        !fill in x for cartesian coodinate systeme
@@ -94,11 +114,40 @@ contains
              datapiv.x(i,j,1) = (i-1) * datapiv.dx * cos((j-1)*datapiv.dy)
              datapiv.x(i,j,2) = (i-1) * datapiv.dx * sin((j-1)*datapiv.dy)
              datapiv.x(i,j,3) = datapiv.z_pos
+=======
+    if (datapiv%typeofgrid == "C") then
+
+       !fill in x for cartesian coodinate systeme
+       allocate(datapiv%x(datapiv%nx,&
+            datapiv%ny,3))
+       do i=0,datapiv%nx-1
+          do j=0,datapiv%ny-1
+             datapiv%x(i+1,j+1,1) = real(i*datapiv%pixel_step) * datapiv%dx + datapiv%x0
+             datapiv%x(i+1,j+1,2) = real(j*datapiv%pixel_step) * datapiv%dy + datapiv%y0
+             datapiv%x(i+1,j+1,3) = datapiv%z_pos
+          end do
+       end do
+
+    else if (datapiv%typeofgrid == "P") then
+
+       !fill in x for polar coodinate systeme
+       allocate(datapiv%x(datapiv%nx,&
+            datapiv%ny,3))
+       do i=1,datapiv%nx
+          do j=1,datapiv%ny
+             datapiv%x(i,j,1) = (i-1) * datapiv%dx * cos((j-1)*datapiv%dy)
+             datapiv%x(i,j,2) = (i-1) * datapiv%dx * sin((j-1)*datapiv%dy)
+             datapiv%x(i,j,3) = datapiv%z_pos
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
           end do
        end do
 
     else
+<<<<<<< HEAD
        write(06,*)"piv_io_read : impossible to define the type of grid"
+=======
+       write(06,*)"piv_set_x : impossible to define the type of grid"
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        STOP
     end if
 
@@ -111,12 +160,18 @@ contains
     integer                            ::n1,n2
     integer                            ::Nmax
     !-----------------------------------------------
+<<<<<<< HEAD
     n1 = datapiv.nx
     n2 = datapiv.ny
+=======
+    n1 = datapiv%nx
+    n2 = datapiv%ny
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
     if (PRESENT(Nstats)) then
        Nmax = Nstats
     else
+<<<<<<< HEAD
        Nmax = datapiv.nsamples
     end if
 
@@ -149,11 +204,46 @@ contains
              call flatness (datapiv.u(i,j,ic,1:Nmax),&
                   datapiv.stat.u_flat(i,j,ic),&
                   datapiv.w(i,j,1:Nmax))
+=======
+       Nmax = datapiv%nsamples
+    end if
+
+    allocate(datapiv%stat%u_mean(n1,n2,datapiv%ncomponent))
+    allocate(datapiv%stat%u_rms(n1,n2,datapiv%ncomponent))
+    allocate(datapiv%stat%u_skew(n1,n2,datapiv%ncomponent))
+    allocate(datapiv%stat%u_flat(n1,n2,datapiv%ncomponent))
+
+    if (.not. allocated(datapiv%w)) then
+       allocate(datapiv%w(n1,n2,datapiv%nsamples))
+       datapiv%w = 1.d0
+    end if
+
+    do ic=1,datapiv%ncomponent
+       do j=1,n2
+          do i=1,n1
+
+             call average(datapiv%u(i,j,ic,1:Nmax),&
+                  datapiv%stat%u_mean(i,j,ic),&
+                  datapiv%w(i,j,1:Nmax))
+
+             call rms    (datapiv%u(i,j,ic,1:Nmax),&
+                  datapiv%stat%u_rms(i,j,ic),&
+                  datapiv%w(i,j,1:Nmax))
+
+             call skewness (datapiv%u(i,j,ic,1:Nmax),&
+                  datapiv%stat%u_skew(i,j,ic),&
+                  datapiv%w(i,j,1:Nmax))
+
+             call flatness (datapiv%u(i,j,ic,1:Nmax),&
+                  datapiv%stat%u_flat(i,j,ic),&
+                  datapiv%w(i,j,1:Nmax))
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
           end do
        end do
     end do
 
+<<<<<<< HEAD
     if (datapiv.ncomponent == 2) then
        allocate(datapiv.stat.xmoments(n1,n2,1))
        do j=1,n2
@@ -182,6 +272,36 @@ contains
                   datapiv.u(i,j,3,:),&
                   datapiv.stat.xmoments(i,j,3),&
                   datapiv.w(i,j,1:Nmax))
+=======
+    if (datapiv%ncomponent == 2) then
+       allocate(datapiv%stat%xmoments(n1,n2,1))
+       do j=1,n2
+          do i=1,n1
+             call xmoment(datapiv%u(i,j,1,1:Nmax),&
+                  datapiv%u(i,j,2,1:Nmax),&
+                  datapiv%stat%xmoments(i,j,1),&
+                  datapiv%w(i,j,1:Nmax))
+          end do
+       end do
+    else if (datapiv%ncomponent == 3) then
+       allocate(datapiv%stat%xmoments(n1,n2,3))
+       do j=1,n2
+          do i=1,n1
+             call xmoment(datapiv%u(i,j,1,1:Nmax),&
+                  datapiv%u(i,j,2,:),&
+                  datapiv%stat%xmoments(i,j,1),&
+                  datapiv%w(i,j,1:Nmax))
+
+             call xmoment(datapiv%u(i,j,1,1:Nmax),&
+                  datapiv%u(i,j,3,:),&
+                  datapiv%stat%xmoments(i,j,2),&
+                  datapiv%w(i,j,1:Nmax))
+
+             call xmoment(datapiv%u(i,j,2,1:Nmax),&
+                  datapiv%u(i,j,3,:),&
+                  datapiv%stat%xmoments(i,j,3),&
+                  datapiv%w(i,j,1:Nmax))
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
           end do
        end do
     end if
@@ -199,6 +319,7 @@ contains
     if (present(Nmax)) then
        nn = Nmax
     else
+<<<<<<< HEAD
        nn = datapiv.nsamples
     end if
 
@@ -221,12 +342,40 @@ contains
              call average(datapiv.u(i,j,ic,1:nn),&
                   datapiv.stat.u_mean(i,j,ic),&
                   datapiv.w(i,j,1:nn))
+=======
+       nn = datapiv%nsamples
+    end if
+
+    n1 = datapiv%nx
+    n2 = datapiv%ny
+
+    if (.not. allocated(datapiv%w)) then
+       allocate(datapiv%w(n1,n2,datapiv%nsamples))
+       datapiv%w = 1.d0
+    end if
+
+    if (.not.allocated(datapiv%stat%u_mean)) then
+       allocate(datapiv%stat%u_mean(n1,n2,datapiv%ncomponent))
+    end if
+
+    do ic=1,datapiv%ncomponent
+       do j=1,n2
+          do i=1,n1
+
+             call average(datapiv%u(i,j,ic,1:nn),&
+                  datapiv%stat%u_mean(i,j,ic),&
+                  datapiv%w(i,j,1:nn))
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
           end do
        end do
     end do
 
+<<<<<<< HEAD
 end subroutine piv_average
+=======
+  end subroutine piv_average
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
   subroutine piv_rms(datapiv,Nmax)
     use lib_stat
@@ -238,6 +387,7 @@ end subroutine piv_average
     if (present(Nmax)) then
        nn = Nmax
     else
+<<<<<<< HEAD
        nn = datapiv.nsamples
     end if
 
@@ -258,6 +408,28 @@ end subroutine piv_average
                 call rms    (datapiv.u(i,j,ic,1:nn),&
                      datapiv.stat.u_rms(i,j,ic),&
                      datapiv.w(i,j,1:nn))
+=======
+       nn = datapiv%nsamples
+    end if
+
+    if (.not. allocated(datapiv%w)) then
+       allocate(datapiv%w(n1,n2,datapiv%nsamples))
+       datapiv%w = 1.d0
+    end if
+
+    if (.not.allocated(datapiv%stat%u_rms)) then
+       n1 = datapiv%nx
+       n2 = datapiv%ny
+
+       allocate(datapiv%stat%u_rms(n1,n2,datapiv%ncomponent))
+       do ic=1,datapiv%ncomponent
+          do j=1,n2
+             do i=1,n1
+
+                call rms    (datapiv%u(i,j,ic,1:nn),&
+                     datapiv%stat%u_rms(i,j,ic),&
+                     datapiv%w(i,j,1:nn))
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
              end do
           end do
@@ -272,12 +444,21 @@ end subroutine piv_average
     integer                            ::n1,n2
     !-----------------------------------------------
 
+<<<<<<< HEAD
     if (.not.allocated(datapiv.stat.u_mean)) then
        call datapiv.cal_avg()
     end if
 
     do is=1,datapiv.nsamples
        datapiv.u(:,:,:,is) = datapiv.u(:,:,:,is) - datapiv.stat.u_mean(:,:,:)
+=======
+    if (.not.allocated(datapiv%stat%u_mean)) then
+       call datapiv%cal_avg()
+    end if
+
+    do is=1,datapiv%nsamples
+       datapiv%u(:,:,:,is) = datapiv%u(:,:,:,is) - datapiv%stat%u_mean(:,:,:)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     end do
 
   end subroutine piv_fluctuations
@@ -292,7 +473,92 @@ end subroutine piv_average
   !*****************************************************************
 
 
+<<<<<<< HEAD
   subroutine piv_io_read(datapiv,filename)
+=======
+  subroutine piv_io_read(datapiv,filename,fmt)
+    class(PIVdata)                     ::datapiv
+    character(len=*)                   ::filename
+    character(len=*)   ,optional       ::fmt
+    !----------------------------------------------
+
+    if (present(fmt)) then
+       select case (fmt)
+       case ('bin')
+          call piv_io_read_bin(datapiv,filename)
+       ! case ('netCDF')
+       !    call piv_io_read_netcdf(datapiv,filename)
+       case default
+          write(06,*) 'piv_io_read : unknown data format "',fmt,'"'
+          STOP
+       end select
+    else
+       call piv_io_read_bin(datapiv,filename)
+    end if
+
+  end subroutine piv_io_read
+
+  ! subroutine piv_io_read_netcdf(datapiv,filename)
+  !   use lib_netcdf
+  !   class(PIVdata)                     ::datapiv
+  !   type(netcdf_data)                  ::ncdfpiv
+  !   character(len=*)                   ::filename
+  !   logical                            ::file_exists
+
+  !   integer                            ::n1,n2,ic
+  !   !----------------------------------------------
+
+  !   !check existence of binary data file
+  !   inquire(file=trim(filename), EXIST=file_exists)
+  !   if (file_exists) then
+  !      call ncdfpiv%read_data(filename)
+  !   else
+  !      write(06,*) trim(filename)," doesn't exist..."
+  !      STOP
+  !   end if
+
+  !   !switch from netCDF to pivdata format
+  !   !------------------------------------
+  !   if (ncdfpiv%ndim == 1) &
+  !        STOP 'piv_io_read_netcdf : wrong number of dimensions in the piv file'
+
+  !   !beware netcdf data are column major mode (c++ style)
+  !   !that is why x and y are inverted
+  !   datapiv%nx = ncdfpiv%dimensions(2)%len
+  !   datapiv%ny = ncdfpiv%dimensions(1)%len
+  !   if (ncdfpiv%ndim == 3) then
+  !      datapiv%nsamples   = ncdfpiv%dimensions(3)%len
+  !      datapiv%fs         = 1.d0/(ncdfpiv%var(3)%data(2)-ncdfpiv%var(3)%data(1))
+  !   else
+  !      datapiv%nsamples   = 1
+  !   end if
+  !   datapiv%ncomponent = ncdfpiv%nvar-ncdfpiv%ndim
+  !   datapiv%ncgen = 0
+
+  !   !allocate memory
+  !   call piv_create(datapiv)
+
+  !   !set coordinates
+  !   datapiv%x0 = ncdfpiv%var(2)%data(1)
+  !   datapiv%y0 = ncdfpiv%var(1)%data(1)
+  !   datapiv%dx = ncdfpiv%var(2)%data(2)-ncdfpiv%var(1)%data(1)
+  !   datapiv%dy = ncdfpiv%var(1)%data(2)-ncdfpiv%var(2)%data(1)
+
+  !   call piv_set_x(datapiv)
+
+  !   !fill variable memory
+  !   do ic=1,datapiv%ncomponent
+  !      datapiv%u(:,:,ic,:)=reshape(ncdfpiv%var(ic+ncdfpiv%ndim)%data,&
+  !           (/datapiv%nx,datapiv%ny,datapiv%nsamples/))
+  !   end do
+
+  !   !free netcdf memory use
+  !   call ncdfpiv%destroy()
+
+  ! end subroutine piv_io_read_netcdf
+
+  subroutine piv_io_read_bin(datapiv,filename)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     class(PIVdata)                     ::datapiv
     character(len=*)                   ::filename
     logical                            ::file_exists
@@ -300,13 +566,18 @@ end subroutine piv_average
     integer                            ::n1,n2
     !----------------------------------------------
 
+<<<<<<< HEAD
     !check existence of binary data file
+=======
+    !check existence of binary data f<ile
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     inquire(file=trim(filename), EXIST=file_exists)
     if (file_exists) then
 
        open(unit=110,file=trim(filename),form='unformatted',&
             action='read', access='stream', status='old')
 
+<<<<<<< HEAD
        read(110)datapiv.typeofgrid
 
        if (datapiv.typeofgrid == "C" .or. datapiv.typeofgrid == "P") then
@@ -325,10 +596,32 @@ end subroutine piv_average
 
        else
           write(06,*)"piv_io_read : impossible to define the type of grid"
+=======
+       read(110)datapiv%typeofgrid
+
+       if (datapiv%typeofgrid == "C" .or. datapiv%typeofgrid == "P") then
+
+          !read datapiv info header
+          read(110)datapiv%nx, datapiv%ny,&
+               datapiv%ncomponent,datapiv%nsamples,&
+               datapiv%dx, datapiv%dy,&
+               datapiv%x0, datapiv%y0,&
+               datapiv%pixel_step,&
+               datapiv%fs,&
+               datapiv%z_pos
+
+          n1 = datapiv%nx
+          n2 = datapiv%ny
+
+       else
+          write(06,*)"piv_io_read : impossible to define the type of grid"
+          write(06,*)"              be sure to define the correct data format"
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
           STOP
        end if
 
        !read statgnation conditions if some
+<<<<<<< HEAD
        read(110)datapiv.ncgen
        if (datapiv.ncgen > 0) then
           allocate(datapiv.cgen(datapiv.ncgen))
@@ -347,6 +640,21 @@ end subroutine piv_average
        allocate(datapiv.u(n1,n2,datapiv.ncomponent,&
             datapiv.nsamples))
        read(110)datapiv.u
+=======
+       read(110)datapiv%ncgen
+       if (datapiv%ncgen > 0) then
+          allocate(datapiv%cgen(datapiv%ncgen))
+          read(110)datapiv%cgen
+       end if
+
+       !read 500 comment characters
+       read(110)datapiv%comments
+
+       !read velocity samples<
+       allocate(datapiv%u(n1,n2,datapiv%ncomponent,&
+            datapiv%nsamples))
+       read(110)datapiv%u
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
        close(110)
     else
@@ -354,9 +662,36 @@ end subroutine piv_average
        STOP
     end if
 
+<<<<<<< HEAD
   end subroutine piv_io_read
 
   subroutine piv_io_write(datapiv,filename)
+=======
+  end subroutine piv_io_read_bin
+
+  subroutine piv_io_write(datapiv,filename,fmt)
+    class(PIVdata)                     ::datapiv
+    character(len=*)                   ::filename
+    character(len=*)   ,optional       ::fmt
+    !----------------------------------------------
+
+    if (present(fmt)) then
+       select case (fmt)
+       case ('bin')
+          call piv_io_write_bin(datapiv,filename)
+       ! case ('netCDF')
+       !       call piv_io_write_netcdf(datapiv,filename)
+       case default
+          STOP 'piv_io_write : unknom data format (bin or netCDF)'
+       end select
+    else
+       call piv_io_write_bin(datapiv,filename)
+    end if
+
+  end subroutine piv_io_write
+
+  subroutine piv_io_write_bin(datapiv,filename)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     class(PIVdata)                     ::datapiv
     character(len=*)                   ::filename
     logical                            ::file_exists
@@ -365,6 +700,7 @@ end subroutine piv_average
     open(unit=110,file=trim(filename),form='unformatted',&
          action='write', access='stream', status='unknown')
 
+<<<<<<< HEAD
     write(110)datapiv.typeofgrid
 
     !write datapiv info header
@@ -390,11 +726,107 @@ end subroutine piv_average
     close(110)
 
   end subroutine piv_io_write
+=======
+    write(110)datapiv%typeofgrid
+
+    !write datapiv info header
+    write(110)datapiv%nx, datapiv%ny,&
+         datapiv%ncomponent,datapiv%nsamples,&
+         datapiv%dx, datapiv%dy,&
+         datapiv%x0, datapiv%y0,&
+         datapiv%pixel_step,datapiv%fs,&
+         datapiv%z_pos
+
+    !write statgnation conditions if some
+    write(110)datapiv%ncgen
+    if (datapiv%ncgen > 0) then
+       write(110)datapiv%cgen
+    end if
+
+    !write comments
+    write(110)datapiv%comments
+
+    !write data
+    write(110)datapiv%u
+
+    close(110)
+
+  end subroutine piv_io_write_bin
+
+  ! subroutine piv_io_write_netcdf(datapiv,filename)
+  !   use lib_netcdf
+  !   class(PIVdata)                     ::datapiv
+  !   type(netcdf_data)                  ::ncdfpiv
+  !   character(len=*)                   ::filename
+
+  !   character(len=4)   ,dimension(:), allocatable  ::varname
+  !   !----------------------------------------------
+
+  !   !switch from pivdata to netCDF format
+  !   !------------------------------------
+  !   !beware netcdf data are column major mode (c++ style)
+  !   !that is why x and y are inverted
+  !   allocate(varname(datapiv%nsamples))
+  !   do ic=1,datapiv%ncomponent
+  !      write(varname(ic),'(a1,i1)')'u',ic
+  !   end do
+
+  !   if (datapiv%nsamples /= 1) then
+
+  !      call ncdfpiv%create(&
+  !           (/datapiv%ny,datapiv%nx, datapiv%nsamples/),&
+  !           (/"y","x","t"/),&
+  !           datapiv%ncomponent+3,&
+  !           (/"yvar","xvar","tvar",(varname(ic),ic=1,datapiv%ncomponent)/)&
+  !           )
+  !   else
+  !      call ncdfpiv%create(&
+  !           (/datapiv%ny,datapiv%nx/),&
+  !           (/"y","x"/),&
+  !           datapiv%ncomponent+2,&
+  !           (/"yvar","xvar",(varname(ic),ic=1,datapiv%ncomponent)/)&
+  !           )
+  !   end if
+
+  !   do i=1,datapiv%nx
+  !      ncdfpiv%var(2)%data(i) = datapiv%x0 + (i-1)*datapiv%dx
+  !   end do
+  !   do i=1,datapiv%ny
+  !      ncdfpiv%var(1)%data(i) = datapiv%y0 + (i-1)*datapiv%dy
+  !   end do
+  !   if (datapiv%nsamples /= 1) then
+  !      do i=1,datapiv%nsamples
+  !         ncdfpiv%var(3)%data(i) = (i-1)/datapiv%fs
+  !      end do
+  !   end if
+  !   do ic=1,datapiv%ncomponent
+  !      ncdfpiv%var(ncdfpiv%ndim+ic)%data = reshape(datapiv%u(:,:,ic,:),&
+  !           (/size(ncdfpiv%var(ncdfpiv%ndim+ic)%data)/))
+  !   end do
+
+  !   !write the data
+  !   call ncdfpiv%write_data(filename)
+
+  !   !clear some memory
+  !   call ncdfpiv%destroy()
+
+  ! end subroutine piv_io_write_netcdf
+
+  !***********************************************************
+  !
+  !
+  !       Constructor / Destuctor Routines
+  !
+  !
+  !***********************************************************
+
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
   subroutine piv_destroy(datapiv)
     class(PIVdata)                     ::datapiv
     !-------------------------------------------
 
+<<<<<<< HEAD
     if (allocated(datapiv.u)) deallocate(datapiv.u)
     if (allocated(datapiv.stat.u_mean)) deallocate(datapiv.stat.u_mean)
     if (allocated(datapiv.stat.u_rms))  deallocate(datapiv.stat.u_rms)
@@ -403,6 +835,16 @@ end subroutine piv_average
     if (allocated(datapiv.x)) deallocate(datapiv.x)
     if (allocated(datapiv.w)) deallocate(datapiv.w)
     if (allocated(datapiv.cgen)) deallocate(datapiv.cgen)
+=======
+    if (allocated(datapiv%u)) deallocate(datapiv%u)
+    if (allocated(datapiv%stat%u_mean)) deallocate(datapiv%stat%u_mean)
+    if (allocated(datapiv%stat%u_rms))  deallocate(datapiv%stat%u_rms)
+    if (allocated(datapiv%stat%u_skew)) deallocate(datapiv%stat%u_skew)
+    if (allocated(datapiv%stat%u_flat)) deallocate(datapiv%stat%u_flat)
+    if (allocated(datapiv%x)) deallocate(datapiv%x)
+    if (allocated(datapiv%w)) deallocate(datapiv%w)
+    if (allocated(datapiv%cgen)) deallocate(datapiv%cgen)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
   end subroutine piv_destroy
 
@@ -410,14 +852,28 @@ end subroutine piv_average
     class(PIVdata)                     ::datapiv
     !-------------------------------------------
 
+<<<<<<< HEAD
     if (.not. allocated(datapiv.u)) then
        if (datapiv.nx /= 0 .and. datapiv.ny /= 0 .and. datapiv.ncomponent .and. datapiv.nsamples /=0) then
           allocate(datapiv.u(datapiv.nx,datapiv.ny,datapiv.ncomponent,datapiv.nsamples))
+=======
+    if (.not. allocated(datapiv%u)) then
+       if ((datapiv%nx /= 0) .and. (datapiv%ny /= 0)&
+            &.and. (datapiv%ncomponent/=0) .and. (datapiv%nsamples /=0)) then
+          allocate(datapiv%u(datapiv%nx,datapiv%ny,datapiv%ncomponent,datapiv%nsamples))
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        else
           STOP "datapiv : can't allocate memory, a table size equals 0"
        end if
     end if
+<<<<<<< HEAD
     if (.not. allocated(datapiv.cgen)) allocate(datapiv.cgen(datapiv.ncgen))
+=======
+
+    if (.not. allocated(datapiv%cgen)) then
+       if ((datapiv%ncgen /= 0))  allocate(datapiv%cgen(datapiv%ncgen))
+    end if
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
   end subroutine piv_create
 
@@ -426,6 +882,7 @@ end subroutine piv_average
     !-------------------------------------------
 
     write(06,*)"File infos :"
+<<<<<<< HEAD
     if (datapiv.typeofgrid=="C") then
        write(06,*)"Cartesian grid"
        write(06,'(a,i3,a,i3,a,i3,a,i5)')"  - nx = ",datapiv.nx,", ny = ",datapiv.ny,&
@@ -452,6 +909,34 @@ end subroutine piv_average
        write(06,'(a,10(f10.3,2x))')"  - Stagnation Conditions :",(datapiv.cgen(i),i=1,datapiv.ncgen)
        else
           write(06,'(a)') " No Stagnation condition stored"
+=======
+    if (datapiv%typeofgrid=="C") then
+       write(06,*)"Cartesian grid"
+       write(06,'(a,i3,a,i3,a,i3,a,i5)')"  - nx = ",datapiv%nx,", ny = ",datapiv%ny,&
+            ", ncompoments = ",datapiv%ncomponent,", nsamples = ", datapiv%nsamples
+       write(06,'(a,f6.2,a,f6.2,a,f6.2,a,f6.2)')"  - x0 = ",datapiv%x0,", y0 = ",datapiv%y0,&
+            ", dx = ",datapiv%dx,", dy = ", datapiv%dy
+
+    end if
+
+    if (datapiv%typeofgrid=="P") then
+       write(06,*)"Polar grid"
+       write(06,'(a,i3,a,i3,a,i3,a,i5)')"  - nr = ",datapiv%nx,", ntheta = ",datapiv%ny,&
+            ", ncompoments = ",datapiv%ncomponent,", nsamples = ", datapiv%nsamples
+       write(06,'(a,f6.2,a,f6.2,a,f6.2,a,f6.2)')"  - r0 = ",datapiv%x0,", thetha0 = ",datapiv%y0,&
+            ", dr = ",datapiv%dx,", dtheta = ", datapiv%dy
+
+    end if
+
+    write(06,*)" - Sampling frequency :",datapiv%fs
+    write(06,*)" - z position :",datapiv%z_pos
+    write(06,*)" - Comments :",trim(datapiv%comments)
+
+    if (datapiv%ncgen > 0) then
+       write(06,'(a,10(f10.3,2x))')"  - Stagnation Conditions :",(datapiv%cgen(i),i=1,datapiv%ncgen)
+    else
+       write(06,'(a)') " No Stagnation condition stored"
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     end if
 
   end subroutine piv_info
@@ -509,6 +994,7 @@ end subroutine piv_average
        Nsigma_def = Nsigma
     end if
 
+<<<<<<< HEAD
     ns = datapiv.nsamples
     nc = datapiv.ncomponent
     ny = datapiv.ny
@@ -517,6 +1003,16 @@ end subroutine piv_average
     if (.not. allocated(datapiv.w)) then
        allocate(datapiv.w(nx,ny,ns))
        datapiv.w = 1.d0
+=======
+    ns = datapiv%nsamples
+    nc = datapiv%ncomponent
+    ny = datapiv%ny
+    nx = datapiv%nx
+
+    if (.not. allocated(datapiv%w)) then
+       allocate(datapiv%w(nx,ny,ns))
+       datapiv%w = 1.d0
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     end if
 
     !--------------------------------------
@@ -533,10 +1029,17 @@ end subroutine piv_average
           do ic=1,nc
              do j=1,ny
                 do i=1,nx
+<<<<<<< HEAD
                    if (datapiv.w(i,j,is) /= 0.d0) then
                       if (abs(datapiv.u(i,j,ic,is)-datapiv.stat.u_mean(i,j,ic))&
                            .gt. Nsigma_def*datapiv.stat.u_rms(i,j,ic)) then
                          datapiv.w(i,j,is) = 0.d0
+=======
+                   if (datapiv%w(i,j,is) /= 0.d0) then
+                      if (abs(datapiv%u(i,j,ic,is)-datapiv%stat%u_mean(i,j,ic))&
+                           .gt. Nsigma_def*datapiv%stat%u_rms(i,j,ic)) then
+                         datapiv%w(i,j,is) = 0.d0
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
                       end if
                    end if
                 end do
@@ -544,8 +1047,13 @@ end subroutine piv_average
           end do
        end do
 
+<<<<<<< HEAD
        deallocate(datapiv.stat.u_mean)
        deallocate(datapiv.stat.u_rms)
+=======
+       deallocate(datapiv%stat%u_mean)
+       deallocate(datapiv%stat%u_rms)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
        return
     end if
@@ -562,7 +1070,11 @@ end subroutine piv_average
              do i=1,nx
 
                 !test only if vector is not already an outlier
+<<<<<<< HEAD
                 if (datapiv.w(i,j,is) /= 0.d0) then
+=======
+                if (datapiv%w(i,j,is) /= 0.d0) then
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
                    !computing the Interrogation Area size
                    if (i <= w_def/2) then
@@ -583,7 +1095,11 @@ end subroutine piv_average
 
                    !storing the Interrogation area
                    !excluding the center sample
+<<<<<<< HEAD
                    utest = datapiv.u(i,j,ic,is)
+=======
+                   utest = datapiv%u(i,j,ic,is)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
                    nvec = (if-id+1)*(jf-jd+1)-1
                    allocate (neighbor(nvec))
                    allocate (neighflag(nvec))
@@ -591,8 +1107,13 @@ end subroutine piv_average
                    do ii=id,if
                       do jj =jd,jf
                          if (ii/=0 .or. jj/=0 ) then
+<<<<<<< HEAD
                             neighbor(ivec)  = dble(datapiv.u(i+ii,j+jj,ic,is))
                             neighflag(ivec) = dble(datapiv.w(i+ii,j+jj,is))
+=======
+                            neighbor(ivec)  = dble(datapiv%u(i+ii,j+jj,ic,is))
+                            neighflag(ivec) = dble(datapiv%w(i+ii,j+jj,is))
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
                             ivec = ivec+1
                          end if
                       end do
@@ -619,7 +1140,11 @@ end subroutine piv_average
 
                    !storing the flag :
                    !if flag = 0 an outlier has been detected
+<<<<<<< HEAD
                    datapiv.w(i,j,ic) = neighflag(1)
+=======
+                   datapiv%w(i,j,ic) = neighflag(1)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
                    deallocate(neighbor)
                    deallocate(neighflag)
@@ -672,6 +1197,7 @@ end subroutine piv_average
     end if
 
     if (method == "POD") then
+<<<<<<< HEAD
        call gappypod(datapiv.u,datapiv.w,int(10),real(1e-8))
        return
     end if
@@ -680,6 +1206,16 @@ end subroutine piv_average
     nc = datapiv.ncomponent
     ny = datapiv.ny
     nx = datapiv.nx
+=======
+       call gappypod(datapiv%u,datapiv%w,int(10),real(1e-8))
+       return
+    end if
+
+    ns = datapiv%nsamples
+    nc = datapiv%ncomponent
+    ny = datapiv%ny
+    nx = datapiv%nx
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
     !loop through all the samples
     do is=1,ns
@@ -688,7 +1224,11 @@ end subroutine piv_average
              do i=1,nx
 
                 !Replacing only if necessary
+<<<<<<< HEAD
                 if (datapiv.w(i,j,is) == 0.d0) then
+=======
+                if (datapiv%w(i,j,is) == 0.d0) then
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
                    !computing the Interrogation Area size
                    if (i <= w_def/2) then
@@ -716,8 +1256,13 @@ end subroutine piv_average
                    do ii=id,if
                       do jj =jd,jf
                          if (ii/=0 .or. jj/=0 ) then
+<<<<<<< HEAD
                             neighbor(ivec)  = dble(datapiv.u(i+ii,j+jj,ic,is))
                             neighflag(ivec) = dble(datapiv.w(i+ii,j+jj,is))
+=======
+                            neighbor(ivec)  = dble(datapiv%u(i+ii,j+jj,ic,is))
+                            neighflag(ivec) = dble(datapiv%w(i+ii,j+jj,is))
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
                             ivec = ivec+1
                          end if
                       end do
@@ -728,23 +1273,39 @@ end subroutine piv_average
                    case ("UOD")
 
                       !computing the UOD on the subsample
+<<<<<<< HEAD
                       call UOD_filter(datapiv.u(i,j,ic,is),neighbor,neighflag,nvec)
+=======
+                      call UOD_filter(datapiv%u(i,j,ic,is),neighbor,neighflag,nvec)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
                    case("AVG")
 
                       !computing the AVERAGE filter on the subsample
+<<<<<<< HEAD
                       call average_filter(datapiv.u(i,j,ic,is),neighbor,neighflag,nvec)
+=======
+                      call average_filter(datapiv%u(i,j,ic,is),neighbor,neighflag,nvec)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
                    case("MED")
 
                       !computing the MEDIAN filter on the subsample
+<<<<<<< HEAD
                       call median_filter(datapiv.u(i,j,ic,is),neighbor,neighflag,nvec)
+=======
+                      call median_filter(datapiv%u(i,j,ic,is),neighbor,neighflag,nvec)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
                    end select
 
                    !storing the flag :
                    !if flag = 0 a replacement has been done
+<<<<<<< HEAD
                    datapiv.w(i,j,ic) = neighflag(1)
+=======
+                   datapiv%w(i,j,ic) = neighflag(1)
+>>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
                    deallocate(neighbor)
                    deallocate(neighflag)
