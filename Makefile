@@ -15,7 +15,7 @@ OPT_OMP= -fopenmp
 Debug= -Wall -fcheck=all -g
 
 IPATH=-I./ -I/usr/include
-LPATH=-L./ -L/usr/lib/x86_64-linux-gnu
+LPATH=-L./ -L/usr/lib/x86_64-linux-gnu -L/opt/fftw336/lib
 
 CC = gfortran -O2 $(IPATH)
 CC += $(OPT_OMP)
