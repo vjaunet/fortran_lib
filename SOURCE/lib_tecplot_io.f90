@@ -16,10 +16,7 @@ module lib_tecplot_IO
   !* exitence, ID, variable names and titles
   !*
   !* Usage :
-<<<<<<< HEAD
-=======
   !===========================================================
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
   integer(kind=8), private ::i,j,k,ic,in,ix
 
@@ -36,13 +33,8 @@ module lib_tecplot_IO
      character(len=250)             ::title = ""
 
    contains
-<<<<<<< HEAD
-     procedure openfile  => tec_openfile
-     procedure closefile => tec_closefile
-=======
      procedure :: openfile  => tec_openfile
      procedure :: closefile => tec_closefile
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
      generic, public    :: read_header  => tec_read_header_io,&
           tec_read_header_BSA
@@ -88,29 +80,6 @@ contains
     class(tec_filetype)                      ::filespec
     !--------------------------------------------
 
-<<<<<<< HEAD
-    if (filespec.exist == 1) then
-       if (filespec.RWaccess == 'R') then
-          open (unit=filespec.fid,&
-               file = trim(filespec.filename),&
-               status = 'old',&
-               action='read')
-       elseif (filespec.RWaccess == 'W') then
-          open (unit=filespec.fid,&
-               file = trim(filespec.filename),&
-               status = 'old',&
-               action='write')
-       end if
-    elseif (filespec.exist == 0) then
-       if (filespec.RWaccess == 'R') then
-          open (unit=filespec.fid,&
-               file = trim(filespec.filename),&
-               status = 'new',&
-               action='read')
-       elseif (filespec.RWaccess == 'W') then
-          open (unit=filespec.fid,&
-               file = trim(filespec.filename),&
-=======
     if (filespec%exist == 1) then
        if (filespec%RWaccess == 'R') then
           open (unit=filespec%fid,&
@@ -132,18 +101,12 @@ contains
        elseif (filespec%RWaccess == 'W') then
           open (unit=filespec%fid,&
                file = trim(filespec%filename),&
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
                status = 'new',&
                action='write')
        end if
     else
-<<<<<<< HEAD
-       open (unit=filespec.fid,&
-            file = trim(filespec.filename))
-=======
        open (unit=filespec%fid,&
             file = trim(filespec%filename))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     end if
 
   end subroutine tec_openfile
@@ -153,11 +116,7 @@ contains
     class(tec_filetype)                      ::filespec
     !--------------------------------------------
 
-<<<<<<< HEAD
-    close(filespec.fid)
-=======
     close(filespec%fid)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
   end subroutine tec_closefile
 
@@ -171,13 +130,8 @@ contains
     class(tec_filetype)                  ::filespec
     !-----------------------------------------------
 
-<<<<<<< HEAD
-    write(filespec.fid,'(a,a,a)')'Title = "',trim(filespec.title),'"'
-    write(filespec.fid,'(a,a)')'Variables = ',trim(filespec.varnames)
-=======
     write(filespec%fid,'(a,a,a)')'Title = "',trim(filespec%title),'"'
     write(filespec%fid,'(a,a)')'Variables = ',trim(filespec%varnames)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
   end subroutine tec_write_header
 
@@ -189,19 +143,11 @@ contains
     !--------------------------------------------
 
     !read title and variable names
-<<<<<<< HEAD
-    read(filespec.fid,'(a9,a)')trash1,filespec.title
-    read(filespec.fid,'(a12,a)')trash2,filespec.varnames
-
-    !Remove remaining " from title
-    filespec.title = filespec.title(1:len_trim(filespec.title)-1)
-=======
     read(filespec%fid,'(a9,a)')trash1,filespec%title
     read(filespec%fid,'(a12,a)')trash2,filespec%varnames
 
     !Remove remaining " from title
     filespec%title = filespec%title(1:len_trim(filespec%title)-1)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
   end subroutine tec_read_header_io
 
@@ -217,22 +163,6 @@ contains
     real(kind=8)                        ::t0
     !--------------------------------------------
 
-<<<<<<< HEAD
-    read(filespec.fid,'(a9,a)')trash1,filespec.title
-
-    !bsa header
-    read(filespec.fid,*)
-    read(filespec.fid,'(a18,i2,a1,i2,a1,i2)')trash18,h,trash4,m,trash4,s
-    t0 = (h*60+m)*60+s
-    read(filespec.fid,*)
-    read(filespec.fid,*)
-
-    read(filespec.fid,'(a12,a)')trash2,filespec.varnames
-    read(filespec.fid,*)
-
-    !Remove remaining " from title
-    filespec.title = filespec.title(1:len_trim(filespec.title)-1)
-=======
     read(filespec%fid,'(a9,a)')trash1,filespec%title
 
     !bsa header
@@ -247,7 +177,6 @@ contains
 
     !Remove remaining " from title
     filespec%title = filespec%title(1:len_trim(filespec%title)-1)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
   end subroutine tec_read_header_BSA
 
@@ -272,15 +201,6 @@ contains
     !get the number of variables
     ios = 0
     i = 0
-<<<<<<< HEAD
-    do ii=1,len_trim(filespec.varnames)
-       if (filespec.varnames(ii:ii) == '"') i=i+1
-    end do
-    filespec.nvar = i/2
-
-    !read zone line and extract the data
-    read(filespec.fid,'(a)')zone
-=======
     do ii=1,len_trim(filespec%varnames)
        if (filespec%varnames(ii:ii) == '"') i=i+1
     end do
@@ -288,7 +208,6 @@ contains
 
     !read zone line and extract the data
     read(filespec%fid,'(a)')zone
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
     i=1
     ii=0
@@ -315,11 +234,7 @@ contains
              ii = ii+1
           end do
           trash1 = adjustl(zone(i+2:i+ii))
-<<<<<<< HEAD
-          read(trash1,*)filespec.nx
-=======
           read(trash1,*)filespec%nx
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
        else if (zone(i:i+1) == "J=") then
           !get ny
@@ -330,12 +245,7 @@ contains
              ii = ii+1
           end do
           trash1 = adjustl(zone(i+2:i+ii))
-<<<<<<< HEAD
-          read(trash1,*)filespec.ny
-=======
           read(trash1,*)filespec%ny
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
-
        else if (zone(i:i+1) == "K=") then
           !get nz
 
@@ -345,11 +255,7 @@ contains
              ii = ii+1
           end do
           trash1 = adjustl(zone(i+2:i+ii))
-<<<<<<< HEAD
-          read(trash1,*)filespec.nz
-=======
           read(trash1,*)filespec%nz
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
        end if
 
@@ -380,11 +286,7 @@ contains
     nn = size(tab,1)
     nc = size(tab,2)
 
-<<<<<<< HEAD
-    if ((nn /= filespec.nx) .or. nc /= filespec.nvar) then
-=======
     if ((nn /= filespec%nx) .or. nc /= filespec%nvar) then
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        STOP 'read_ascii_1d : wrong table size'
     end if
 
@@ -392,26 +294,15 @@ contains
     type is (integer)
        allocate(tabi4(nn,nc))
        do in=1,nn
-<<<<<<< HEAD
-          read(filespec.fid,*)(tabi4(in,ic),ic=1,nc)
-=======
           read(filespec%fid,*)(tabi4(in,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        end do
        tab = tabi4
        deallocate(tabi4)
 
-<<<<<<< HEAD
-    type is (integer*8)
-       allocate(tabi8(nn,nc))
-       do in=1,nn
-          read(filespec.fid,*)(tabi8(in,ic),ic=1,nc)
-=======
     type is (integer(kind=8))
        allocate(tabi8(nn,nc))
        do in=1,nn
           read(filespec%fid,*)(tabi8(in,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        end do
        tab = tabi8
        deallocate(tabi8)
@@ -419,26 +310,15 @@ contains
     type is (real)
        allocate(tabr4(nn,nc))
        do in=1,nn
-<<<<<<< HEAD
-          read(filespec.fid,*)(tabr4(in,ic),ic=1,nc)
-=======
           read(filespec%fid,*)(tabr4(in,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        end do
        tab = tabr4
        deallocate(tabr4)
 
-<<<<<<< HEAD
-    type is (real*8)
-       allocate(tabr8(nn,nc))
-       do in=1,nn
-          read(filespec.fid,*)(tabr8(in,ic),ic=1,nc)
-=======
     type is (real(kind=8))
        allocate(tabr8(nn,nc))
        do in=1,nn
           read(filespec%fid,*)(tabr8(in,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        end do
        tab = tabr8
        deallocate(tabr8)
@@ -470,15 +350,9 @@ contains
     nj = size(tab,2)
     nc = size(tab,3)
 
-<<<<<<< HEAD
-    if (ni /= filespec.nx &
-         .or. nj /= filespec.ny&
-         .or. nc /= filespec.nvar) then
-=======
     if (ni /= filespec%nx &
          .or. nj /= filespec%ny&
          .or. nc /= filespec%nvar) then
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        STOP 'read_ascii_1d : wrong table size'
     end if
 
@@ -487,29 +361,17 @@ contains
        allocate(tabi4(ni,nj,nc))
        do j=1,nj
           do i=1,ni
-<<<<<<< HEAD
-             read(filespec.fid,*)(tabi4(i,j,ic),ic=1,nc)
-=======
              read(filespec%fid,*)(tabi4(i,j,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
           end do
        end do
        tab = tabi4
        deallocate(tabi4)
 
-<<<<<<< HEAD
-    type is (integer*8)
-       allocate(tabi8(ni,nj,nc))
-       do j=1,nj
-          do i=1,ni
-             read(filespec.fid,*)(tabi8(i,j,ic),ic=1,nc)
-=======
     type is (integer(kind=8))
        allocate(tabi8(ni,nj,nc))
        do j=1,nj
           do i=1,ni
              read(filespec%fid,*)(tabi8(i,j,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
           end do
        end do
        tab = tabi8
@@ -519,29 +381,17 @@ contains
        allocate(tabr4(ni,nj,nc))
        do j=1,nj
           do i=1,ni
-<<<<<<< HEAD
-             read(filespec.fid,*)(tabr4(i,j,ic),ic=1,nc)
-=======
              read(filespec%fid,*)(tabr4(i,j,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
           end do
        end do
        tab = tabr4
        deallocate(tabr4)
 
-<<<<<<< HEAD
-    type is (real*8)
-       allocate(tabr8(ni,nj,nc))
-       do j=1,nj
-          do i=1,ni
-             read(filespec.fid,*)(tabr8(i,j,ic),ic=1,nc)
-=======
     type is (real(kind=8))
        allocate(tabr8(ni,nj,nc))
        do j=1,nj
           do i=1,ni
              read(filespec%fid,*)(tabr8(i,j,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
           end do
        end do
        tab = tabr8
@@ -574,17 +424,10 @@ contains
     nk = size(tab,3)
     nc = size(tab,4)
 
-<<<<<<< HEAD
-    if (ni /= filespec.nx &
-         .or. nj /= filespec.ny&
-         .or. nj /= filespec.nz&
-         .or. nc /= filespec.nvar) then
-=======
     if (ni /= filespec%nx &
          .or. nj /= filespec%ny&
          .or. nj /= filespec%nz&
          .or. nc /= filespec%nvar) then
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        STOP 'read_ascii_3d : wrong table size'
     end if
 
@@ -594,31 +437,19 @@ contains
        do k=1,nk
           do j=1,nj
              do i=1,ni
-<<<<<<< HEAD
-                read(filespec.fid,*)(tabi4(i,j,k,ic),ic=1,nc)
-=======
                 read(filespec%fid,*)(tabi4(i,j,k,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
              end do
           end do
        end do
        tab = tabi4
        deallocate(tabi4)
 
-<<<<<<< HEAD
-    type is (integer*8)
-=======
     type is (integer(kind=8))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        allocate(tabi8(ni,nj,nk,nc))
        do k=1,nk
           do j=1,nj
              do i=1,ni
-<<<<<<< HEAD
-                read(filespec.fid,*)(tabi8(i,j,k,ic),ic=1,nc)
-=======
                 read(filespec%fid,*)(tabi8(i,j,k,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
              end do
           end do
        end do
@@ -630,31 +461,19 @@ contains
        do k=1,nk
           do j=1,nj
              do i=1,ni
-<<<<<<< HEAD
-                read(filespec.fid,*)(tabr4(i,j,k,ic),ic=1,nc)
-=======
                 read(filespec%fid,*)(tabr4(i,j,k,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
              end do
           end do
        end do
        tab = tabr4
        deallocate(tabr4)
 
-<<<<<<< HEAD
-    type is (real*8)
-=======
     type is (real(kind=8))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        allocate(tabr8(ni,nj,nk,nc))
        do k=1,nk
           do j=1,nj
              do i=1,ni
-<<<<<<< HEAD
-                read(filespec.fid,*)(tabr8(i,j,k,ic),ic=1,nc)
-=======
                 read(filespec%fid,*)(tabr8(i,j,k,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
              end do
           end do
        end do
@@ -681,15 +500,9 @@ contains
     character(len=*)  ,optional                              ::zonetitle
 
     integer,   dimension(:,:), allocatable                   ::bufi4
-<<<<<<< HEAD
-    integer*8, dimension(:,:), allocatable                   ::bufi8
-    real,      dimension(:,:), allocatable                   ::bufr4
-    real*8,    dimension(:,:), allocatable                   ::bufr8
-=======
     integer(kind=8), dimension(:,:), allocatable                   ::bufi8
     real,      dimension(:,:), allocatable                   ::bufr4
     real(kind=8),    dimension(:,:), allocatable                   ::bufr8
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     !----------------------------------------------------------------------
 
     ni=size(tab,1)
@@ -700,21 +513,13 @@ contains
     type is (integer)
        allocate(bufi4(ni,nc+nx))
        bufi4(:,1:nx) = x(:,:)
-<<<<<<< HEAD
-    type is (integer*8)
-=======
     type is (integer(kind=8))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        allocate(bufi8(ni,nc+nx))
        bufi8(:,1:nx) = x(:,:)
     type is (real)
        allocate(bufr4(ni,nc+nx))
        bufr4(:,1:nx) = x(:,:)
-<<<<<<< HEAD
-    type is (real*8)
-=======
     type is (real(kind=8))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        allocate(bufr8(ni,nc+nx))
        bufr8(:,1:nx) = x(:,:)
     end select
@@ -729,11 +534,7 @@ contains
        end if
        deallocate(bufi4)
 
-<<<<<<< HEAD
-    type is (integer*8)
-=======
     type is (integer(kind=8))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        bufi8(:,nx+1:nx+nc) = tab(:,:)
        if (present(zonetitle)) then
           call write_ascii_1d(filespec,bufi8,zonetitle)
@@ -742,11 +543,7 @@ contains
        end if
        deallocate(bufi8)
 
-<<<<<<< HEAD
-    type is (real*4)
-=======
     type is (real(kind=4))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        bufr4(:,nx+1:nx+nc) = tab(:,:)
        if (present(zonetitle)) then
           call write_ascii_1d(filespec,bufr4,zonetitle)
@@ -755,11 +552,7 @@ contains
        end if
        deallocate(bufr8)
 
-<<<<<<< HEAD
-    type is (real*8)
-=======
     type is (real(kind=8))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        bufr8(:,nx+1:nx+nc) = tab(:,:)
        if (present(zonetitle)) then
           call write_ascii_1d(filespec,bufr8,zonetitle)
@@ -780,57 +573,32 @@ contains
     character(len=*) ,optional                      ::zonetitle
 
     integer, dimension(:,:), allocatable            ::tabi4
-<<<<<<< HEAD
-    integer*8, dimension(:,:), allocatable          ::tabi8
-    real   , dimension(:,:), allocatable            ::tabr4
-    real*8 , dimension(:,:), allocatable            ::tabr8
-=======
     integer(kind=8), dimension(:,:), allocatable    ::tabi8
     real   , dimension(:,:), allocatable            ::tabr4
     real(kind=8) , dimension(:,:), allocatable      ::tabr8
 
     character(len=150)                              ::fmt
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     !-----------------------------------------------------------
 
     nn = size(tab,1)
     nc = size(tab,2)
 
-<<<<<<< HEAD
-1664 format (<nc+1>(e15.8,2x))
-=======
     write(fmt,'(i0)')nc+1
     fmt=fmt//"(e15.8,2x)"
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
+
 1666 format (a,i0)
 1665 format (a,a,a,i0)
 
     if (present(zonetitle)) then
-<<<<<<< HEAD
-       write(filespec.fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
-    else
-       write(filespec.fid,1666)'Zone T="", I=',nn
-=======
        write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',nn
     else
        write(filespec%fid,1666)'Zone T="", I=',nn
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     end if
 
     select type (tab)
     type is (integer)
        allocate(tabi4(nn,nc),source=tab)
        do in=1,nn
-<<<<<<< HEAD
-          write(filespec.fid,1664)(tabi4(in,ic),ic=1,nc)
-       end do
-       deallocate(tabi4)
-
-    type is (integer*8)
-       allocate(tabi8(nn,nc),source=tab)
-       do in=1,nn
-          write(filespec.fid,1664)(tabi8(in,ic),ic=1,nc)
-=======
           write(filespec%fid,trim(fmt))(tabi4(in,ic),ic=1,nc)
        end do
        deallocate(tabi4)
@@ -839,23 +607,12 @@ contains
        allocate(tabi8(nn,nc),source=tab)
        do in=1,nn
           write(filespec%fid,trim(fmt))(tabi8(in,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        end do
        deallocate(tabi8)
 
     type is (real)
        allocate(tabr4(nn,nc),source=tab)
        do in=1,nn
-<<<<<<< HEAD
-          write(filespec.fid,1664)(tabr4(in,ic),ic=1,nc)
-       end do
-       deallocate(tabr4)
-
-    type is (real*8)
-       allocate(tabr8(nn,nc),source=tab)
-       do in=1,nn
-          write(filespec.fid,1664)(tabr8(in,ic),ic=1,nc)
-=======
           write(filespec%fid,trim(fmt))(tabr4(in,ic),ic=1,nc)
        end do
        deallocate(tabr4)
@@ -864,7 +621,6 @@ contains
        allocate(tabr8(nn,nc),source=tab)
        do in=1,nn
           write(filespec%fid,trim(fmt))(tabr8(in,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        end do
        deallocate(tabr8)
     end select
@@ -885,15 +641,9 @@ contains
     character(len=*)  ,optional                              ::zonetitle
 
     integer,   dimension(:,:,:), allocatable                 ::bufi4
-<<<<<<< HEAD
-    integer*8, dimension(:,:,:), allocatable                 ::bufi8
-    real,      dimension(:,:,:), allocatable                 ::bufr4
-    real*8,    dimension(:,:,:), allocatable                 ::bufr8
-=======
     integer(kind=8), dimension(:,:,:), allocatable                 ::bufi8
     real,      dimension(:,:,:), allocatable                 ::bufr4
     real(kind=8),    dimension(:,:,:), allocatable                 ::bufr8
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     !----------------------------------------------------------------------
 
     ni=size(tab,1)
@@ -905,21 +655,13 @@ contains
     type is (integer)
        allocate(bufi4(ni,nj,nc+nx))
        bufi4(:,:,1:nx) = x(:,:,:)
-<<<<<<< HEAD
-    type is (integer*8)
-=======
     type is (integer(kind=8))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        allocate(bufi8(ni,nj,nc+nx))
        bufi8(:,:,1:nx) = x(:,:,:)
     type is (real)
        allocate(bufr4(ni,nj,nc+nx))
        bufr4(:,:,1:nx) = x(:,:,:)
-<<<<<<< HEAD
-    type is (real*8)
-=======
     type is (real(kind=8))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        allocate(bufr8(ni,nj,nc+nx))
        bufr8(:,:,1:nx) = x(:,:,:)
     end select
@@ -934,11 +676,7 @@ contains
        end if
        deallocate(bufi4)
 
-<<<<<<< HEAD
-    type is (integer*8)
-=======
     type is (integer(kind=8))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        bufi8(:,:,nx+1:nx+nc) = tab(:,:,:)
        if (present(zonetitle)) then
           call write_ascii_2d(filespec,bufi8,zonetitle)
@@ -947,11 +685,7 @@ contains
        end if
        deallocate(bufi8)
 
-<<<<<<< HEAD
-    type is (real*4)
-=======
     type is (real(kind=4))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        bufr4(:,:,nx+1:nx+nc) = tab(:,:,:)
        if (present(zonetitle)) then
           call write_ascii_2d(filespec,bufr4,zonetitle)
@@ -960,11 +694,7 @@ contains
        end if
        deallocate(bufr4)
 
-<<<<<<< HEAD
-    type is (real*8)
-=======
     type is (real(kind=8))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        bufr8(:,:,nx+1:nx+nc) = tab(:,:,:)
        if (present(zonetitle)) then
           call write_ascii_2d(filespec,bufr8,zonetitle)
@@ -986,42 +716,26 @@ contains
     integer(kind=8)                                   ::ni,nj,nc
 
     integer, dimension(:,:,:), allocatable            ::tabi4
-<<<<<<< HEAD
-    integer*8, dimension(:,:,:), allocatable          ::tabi8
-    real   , dimension(:,:,:), allocatable            ::tabr4
-    real*8 , dimension(:,:,:), allocatable            ::tabr8
-=======
     integer(kind=8), dimension(:,:,:), allocatable          ::tabi8
     real   , dimension(:,:,:), allocatable            ::tabr4
     real(kind=8) , dimension(:,:,:), allocatable            ::tabr8
     character(len=150)                                ::fmt
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     !-------------------------------------------------------------
 
     ni=size(tab,1)
     nj=size(tab,2)
     nc=size(tab,3)
 
-<<<<<<< HEAD
-1664 format (<2*nc>(e15.8,2x))
-=======
 !1664 format (<2*nc>(e15.8,2x))
     write(fmt,'(a,i0,a)')"(",2*nc,"(e15.8,2x))"
 
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 1665 format (a,a,a,i0,a,i0)
 1666 format (a,a,i0,a,i0)
 
     if (present(zonetitle)) then
-<<<<<<< HEAD
-       write(filespec.fid,1665)'Zone T="',trim(zonetitle),'", I=',ni,', J=',nj
-    else
-       write(filespec.fid,1666)'Zone T="',&
-=======
        write(filespec%fid,1665)'Zone T="',trim(zonetitle),'", I=',ni,', J=',nj
     else
        write(filespec%fid,1666)'Zone T="',&
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
             '", I=',ni,', J=',nj
     end if
 
@@ -1030,28 +744,16 @@ contains
        allocate(tabi4(ni,nj,nc),source=tab)
        do j=1,nj
           do i=1,ni
-<<<<<<< HEAD
-             write(filespec.fid,1664)(tabi4(i,j,ic),ic=1,nc)
-=======
              write(filespec%fid,trim(fmt))(tabi4(i,j,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
           end do
        end do
        deallocate(tabi4)
 
-<<<<<<< HEAD
-    type is (integer*8)
-       allocate(tabi8(ni,nj,nc),source=tab)
-       do j=1,nj
-          do i=1,ni
-             write(filespec.fid,1664)(tabi8(i,j,ic),ic=1,nc)
-=======
     type is (integer(kind=8))
        allocate(tabi8(ni,nj,nc),source=tab)
        do j=1,nj
           do i=1,ni
              write(filespec%fid,trim(fmt))(tabi8(i,j,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
           end do
        end do
        deallocate(tabi8)
@@ -1060,28 +762,16 @@ contains
        allocate(tabr4(ni,nj,nc),source=tab)
        do j=1,nj
           do i=1,ni
-<<<<<<< HEAD
-             write(filespec.fid,1664)(tabr4(i,j,ic),ic=1,nc)
-=======
              write(filespec%fid,trim(fmt))(tabr4(i,j,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
           end do
        end do
        deallocate(tabr4)
 
-<<<<<<< HEAD
-    type is (real*8)
-       allocate(tabr8(ni,nj,nc),source=tab)
-       do j=1,nj
-          do i=1,ni
-             write(filespec.fid,1664)(tabr8(i,j,ic),ic=1,nc)
-=======
     type is (real(kind=8))
        allocate(tabr8(ni,nj,nc),source=tab)
        do j=1,nj
           do i=1,ni
              write(filespec%fid,trim(fmt))(tabr8(i,j,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
           end do
        end do
        deallocate(tabr8)
@@ -1104,15 +794,9 @@ contains
     character(len=*)  ,optional                              ::zonetitle
 
     integer, dimension(:,:,:,:), allocatable                 ::bufi4
-<<<<<<< HEAD
-    integer*8, dimension(:,:,:,:), allocatable               ::bufi8
-    real, dimension(:,:,:,:), allocatable                    ::bufr4
-    real*8, dimension(:,:,:,:), allocatable                  ::bufr8
-=======
     integer(kind=8), dimension(:,:,:,:), allocatable               ::bufi8
     real, dimension(:,:,:,:), allocatable                    ::bufr4
     real(kind=8), dimension(:,:,:,:), allocatable                  ::bufr8
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     !----------------------------------------------------------------------
 
     ni=size(tab,1)
@@ -1125,21 +809,13 @@ contains
     type is (integer)
        allocate(bufi4(ni,nj,nk,nc+nx))
        bufi4(:,:,:,1:nx) = x(:,:,:,:)
-<<<<<<< HEAD
-    type is (integer*8)
-=======
     type is (integer(kind=8))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        allocate(bufi8(ni,nj,nk,nc+nx))
        bufi8(:,:,:,1:nx) = x(:,:,:,:)
     type is (real)
        allocate(bufr4(ni,nj,nk,nc+nx))
        bufr4(:,:,:,1:nx) = x(:,:,:,:)
-<<<<<<< HEAD
-    type is (real*8)
-=======
     type is (real(kind=8))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        allocate(bufr8(ni,nj,nk,nc+nx))
        bufr8(:,:,:,1:nx) = x(:,:,:,:)
     end select
@@ -1154,11 +830,7 @@ contains
        end if
        deallocate(bufi4)
 
-<<<<<<< HEAD
-    type is (integer*8)
-=======
     type is (integer(kind=8))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        bufi8(:,:,:,nx+1:nx+nc) = tab(:,:,:,:)
        if (present(zonetitle)) then
           call write_ascii_3d(filespec,bufi8,zonetitle)
@@ -1167,11 +839,7 @@ contains
        end if
        deallocate(bufi8)
 
-<<<<<<< HEAD
-    type is (real*4)
-=======
     type is (real(kind=4))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        bufr4(:,:,:,nx+1:nx+nc) = tab(:,:,:,:)
        if (present(zonetitle)) then
           call write_ascii_3d(filespec,bufr4,zonetitle)
@@ -1180,11 +848,7 @@ contains
        end if
        deallocate(bufr4)
 
-<<<<<<< HEAD
-    type is (real*8)
-=======
     type is (real(kind=8))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        bufr8(:,:,:,nx+1:nx+nc) = tab(:,:,:,:)
        if (present(zonetitle)) then
           call write_ascii_3d(filespec,bufr8,zonetitle)
@@ -1206,17 +870,11 @@ contains
 
 
     integer, dimension(:,:,:,:), allocatable                 ::tabi4
-<<<<<<< HEAD
-    integer*8, dimension(:,:,:,:), allocatable               ::tabi8
-    real   , dimension(:,:,:,:), allocatable                 ::tabr4
-    real*8 , dimension(:,:,:,:), allocatable                 ::tabr8
-=======
     integer(kind=8), dimension(:,:,:,:), allocatable         ::tabi8
     real   , dimension(:,:,:,:), allocatable                 ::tabr4
     real(kind=8) , dimension(:,:,:,:), allocatable           ::tabr8
 
     character(len=150)                                       ::fmt
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     !----------------------------------------------------------------------
 
     ni=size(tab,1)
@@ -1224,16 +882,6 @@ contains
     nk=size(tab,3)
     nc=size(tab,4)
 
-<<<<<<< HEAD
-1664 format (<2*nc>(e15.8,2x))
-1665 format (a,a,a,i0,a,i0,a,i0)
-
-    if (present(zonetitle)) then
-       write(filespec.fid,1665)'Zone T="',trim(zonetitle),&
-            '", I=',ni,', J=',nj,', K=',nk
-    else
-       write(filespec.fid,1665)'Zone T="',&
-=======
     !1664 format (<2*nc>(e15.8,2x))
     write(fmt,'(a,i0,a)')"(",2*nc,"(e15.8,2x))"
 
@@ -1244,7 +892,6 @@ contains
             '", I=',ni,', J=',nj,', K=',nk
     else
        write(filespec%fid,1665)'Zone T="',&
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
             '", I=',ni,', J=',nj,', K=',nk
     end if
 
@@ -1254,30 +901,18 @@ contains
        do k=1,nk
           do j=1,nj
              do i=1,ni
-<<<<<<< HEAD
-                write(filespec.fid,1664)(tabi4(i,j,k,ic),ic=1,nc)
-=======
                 write(filespec%fid,trim(fmt))(tabi4(i,j,k,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
              end do
           end do
        end do
        deallocate(tabi4)
 
-<<<<<<< HEAD
-    type is (integer*8)
-=======
     type is (integer(kind=8))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        allocate(tabi8(ni,nj,nk,nc), source=tab)
        do k=1,nk
           do j=1,nj
              do i=1,ni
-<<<<<<< HEAD
-                write(filespec.fid,1664)(tabi8(i,j,k,ic),ic=1,nc)
-=======
                 write(filespec%fid,trim(fmt))(tabi8(i,j,k,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
              end do
           end do
        end do
@@ -1288,30 +923,18 @@ contains
        do k=1,nk
           do j=1,nj
              do i=1,ni
-<<<<<<< HEAD
-                write(filespec.fid,1664)(tabr4(i,j,k,ic),ic=1,nc)
-=======
                 write(filespec%fid,trim(fmt))(tabr4(i,j,k,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
              end do
           end do
        end do
        deallocate(tabr4)
 
-<<<<<<< HEAD
-    type is (real*8)
-=======
     type is (real(kind=8))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        allocate(tabr8(ni,nj,nk,nc), source=tab)
        do k=1,nk
           do j=1,nj
              do i=1,ni
-<<<<<<< HEAD
-                write(filespec.fid,1664)(tabr8(i,j,k,ic),ic=1,nc)
-=======
                 write(filespec%fid,trim(fmt))(tabr8(i,j,k,ic),ic=1,nc)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
              end do
           end do
        end do

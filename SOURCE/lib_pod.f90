@@ -90,15 +90,9 @@ contains
     nmodv = nsetv
 
     !allocation of the arrays
-<<<<<<< HEAD
-    allocate(datapod.phi(ivmx,jvmx,nc,nsetv))
-    allocate(datapod.alpha(nsetv,nsetv))
-    allocate(datapod.lambda(nsetv))
-=======
     allocate(datapod%phi(ivmx,jvmx,nc,nsetv))
     allocate(datapod%alpha(nsetv,nsetv))
     allocate(datapod%lambda(nsetv))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     allocate(cormat(nsetv,nsetv))
 
     !initialization of some variables
@@ -138,26 +132,6 @@ contains
     allocate(lambda_old(nsetv))
     allocate(cormat_old(nsetv,nsetv))
 
-<<<<<<< HEAD
-    datapod.lambda = 0.d0
-    write(06,*)"Entering SSYEV..."
-    call SSYEV('V','U',nsetv,cormat,nsetv,datapod.lambda,WORK,nwork,ifail)
-
-    if (ifail .ne. 0) then
-       write(06,*)'Error in POD calculation, ifail =',ifail
-       write(06,*)'lambda :',datapod.lambda(ifail)
-       stop
-    end if
-
-    lambda_old = datapod.lambda
-    do i=1,nsetv
-       datapod.lambda(i) = lambda_old(nsetv-i+1)
-    end do
-    cpt1 = 0
-    do imod=1,nsetv
-       if (datapod.lambda(imod) < 0.d0) then
-          datapod.lambda(imod) = 1e-20
-=======
     datapod%lambda = 0.d0
     write(06,*)"Entering SSYEV..."
     call SSYEV('V','U',nsetv,cormat,nsetv,datapod%lambda,WORK,nwork,ifail)
@@ -176,7 +150,6 @@ contains
     do imod=1,nsetv
        if (datapod%lambda(imod) < 0.d0) then
           datapod%lambda(imod) = 1e-20
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
           cpt1 = cpt1 + 1
        end if
     end do
@@ -188,11 +161,7 @@ contains
     do i=1,nsetv
        do j=1,nsetv
           !norme at lambda
-<<<<<<< HEAD
-          cormat(i,j) = cormat_old(i,nsetv-j+1)*sqrt(real(nsetv)*datapod.lambda(j))
-=======
           cormat(i,j) = cormat_old(i,nsetv-j+1)*sqrt(real(nsetv)*datapod%lambda(j))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
        end do
     end do
 
@@ -202,11 +171,7 @@ contains
 
     !calculating the spatial basis functions
     write(06,*)'Computing basis functions'
-<<<<<<< HEAD
-    datapod.phi = 0.d0
-=======
     datapod%phi = 0.d0
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
     !$OMP PARALLEL DO PRIVATE(i,j,ic,iimg) &
     !$OMP& SHARED(u,cormat,datapod,nc,ivmx,jvmx,nsetv) &
     !$OMP& SCHEDULE(Dynamic)
@@ -216,21 +181,12 @@ contains
              do ic=1,nc
                 do iimg=1,nsetv
 
-<<<<<<< HEAD
-                   datapod.phi(i,j,ic,imod) = datapod.phi(i,j,ic,imod) +&
-                        u(i,j,ic,iimg)*cormat(iimg,imod)
-
-                end do
-                datapod.phi(i,j,ic,imod) = datapod.phi(i,j,ic,imod)/(real(nsetv)*&
-                     datapod.lambda(imod))
-=======
                    datapod%phi(i,j,ic,imod) = datapod%phi(i,j,ic,imod) +&
                         u(i,j,ic,iimg)*cormat(iimg,imod)
 
                 end do
                 datapod%phi(i,j,ic,imod) = datapod%phi(i,j,ic,imod)/(real(nsetv)*&
                      datapod%lambda(imod))
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
              end do
           end do
        end do
@@ -238,11 +194,7 @@ contains
     !$OMP END PARALLEL DO
 
     !saving alphas
-<<<<<<< HEAD
-    datapod.alpha=cormat
-=======
     datapod%alpha=cormat
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
     !deallocation of the arrays
     deallocate(cormat)
@@ -262,21 +214,12 @@ contains
     integer(kind=4)                ::nx,ny,nc,ns
     integer(kind=4)                ::i,j,ic,iimg,imod
     !----------------------------------------------
-<<<<<<< HEAD
-    nx = size(datapod.phi(:,1,1,1))
-    ny = size(datapod.phi(1,:,1,1))
-    nc = size(datapod.phi(1,1,:,1))
-    ns = size(datapod.phi(1,1,1,:))
-
-    datapod.upod = 0.d0
-=======
     nx = size(datapod%phi(:,1,1,1))
     ny = size(datapod%phi(1,:,1,1))
     nc = size(datapod%phi(1,1,:,1))
     ns = size(datapod%phi(1,1,1,:))
 
     datapod%upod = 0.d0
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
 
     !$OMP PARALLEL DO PRIVATE(j,ic,iimg,imod) &
     !$OMP& SHARED(datapod,nc,nx,ny,ns) &
@@ -286,13 +229,8 @@ contains
           do ic=1,nc
              do iimg=1,ns
                 do imod=1,nmodes
-<<<<<<< HEAD
-                   datapod.upod(i,j,ic,iimg) = datapod.upod(i,j,ic,iimg) + &
-                        datapod.alpha(iimg,imod)*datapod.phi(i,j,ic,imod)
-=======
                    datapod%upod(i,j,ic,iimg) = datapod%upod(i,j,ic,iimg) + &
                         datapod%alpha(iimg,imod)*datapod%phi(i,j,ic,imod)
->>>>>>> f68c88dba04320fe3fd5b93242bdec0455f3b2f0
                 end do
              end do
           end do
