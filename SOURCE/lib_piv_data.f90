@@ -413,7 +413,6 @@ contains
           STOP
        end if
 
-       !read statgnation conditions if some
        read(110)datapiv%ncgen
        if (datapiv%ncgen > 0) then
           allocate(datapiv%cgen(datapiv%ncgen))

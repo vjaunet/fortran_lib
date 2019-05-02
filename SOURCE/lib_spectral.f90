@@ -49,8 +49,6 @@ module lib_spectral
   integer(kind=8), private ::i,j,k,in,if,ic
 
   type psd_param
-
-
      integer(kind=8)                ::nfft=1024
      integer(kind=8)                ::overlap=512
      character(len=1)               ::window='H'
@@ -144,7 +142,6 @@ contains
     if (param%allocated_fft) then
        !free fftw
        call dfftw_destroy_plan(param%plan)
-
     end if
 
   end subroutine free_fft
@@ -156,7 +153,6 @@ contains
     if (param%allocated_ifft) then
        !free ifftw
        call dfftw_destroy_plan(param%plan_ifft)
-
     end if
 
   end subroutine free_ifft
@@ -820,8 +816,6 @@ contains
 
   end subroutine c4_psd_1d_f
 
-
-
   subroutine d_psd_1d_f (s,f,sp,param)
     real(kind=8)     ,dimension(:)              ::s
     complex(kind=8)  ,dimension(:)              ::sp
@@ -900,9 +894,6 @@ contains
   !----------------------------------------------------
   !*   END PSD
   !----------------------------------------------------
-
-
-
 
   !----------------------------------------------------
   !*   Cross-PSD

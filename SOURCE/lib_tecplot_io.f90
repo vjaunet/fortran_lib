@@ -246,7 +246,6 @@ contains
           end do
           trash1 = adjustl(zone(i+2:i+ii))
           read(trash1,*)filespec%ny
-
        else if (zone(i:i+1) == "K=") then
           !get nz
 
@@ -586,6 +585,7 @@ contains
 
     write(fmt,'(i0)')nc+1
     fmt=fmt//"(e15.8,2x)"
+
 1666 format (a,i0)
 1665 format (a,a,a,i0)
 

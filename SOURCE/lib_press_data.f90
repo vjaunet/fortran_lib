@@ -13,10 +13,8 @@ MODULE LIB_PRESS_DATA
   integer, private, parameter ::ndim=2
   character(len=4),private ::cur_version="v0.1"
 
-
   private ::press_io_constructor,press_io_read,&
        press_io_write,press_info,press_destroy
-
 
   type PRESSdata
      character(len=4) ::version
