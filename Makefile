@@ -14,11 +14,11 @@ OPT_OMP= -fopenmp
 #option de debugage :
 Debug= -Wall -fcheck=all -g
 
-IPATH=-I./ -I/usr/include -I/usr/local/Cellar/fftw/3.3.8/include/
-LPATH=-L./ -L/usr/lib/x86_64-linux-gnu
+IPATH=-I./ -I/usr/include
+LPATH=-L./ -L/usr/lib/x86_64-linux-gnu -L/usr/lib
 
 CC = gfortran -O2 $(IPATH)
-CC += $(OPT_OMP)
+CC += $(OPT_OMP) -llapack -lfftw3
 
 ALL:static install
 
@@ -37,7 +37,7 @@ spectral:lib_spectral.mod
 lib_spectral.mod:SOURCE/lib_spectral.f90 lib_spectral.o
 	@true
 lib_spectral.o:SOURCE/lib_spectral.f90
-	$(CC) -c $^
+	$(CC) -c -lfftw3 $^
 
 stat:lib_stat.mod
 lib_stat.mod:SOURCE/lib_stat.f90 lib_stat.o
