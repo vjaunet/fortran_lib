@@ -600,7 +600,7 @@ contains
     write(06,*)"File infos :"
     if (datapiv%typeofgrid=="C") then
        write(06,*)"Cartesian grid"
-       write(06,'(a,i3,a,i3,a,i3,a,i5)')"  - nx = ",datapiv%nx,", ny = ",datapiv%ny,&
+       write(06,'(a,i4,a,i4,a,i3,a,i5)')"  - nx = ",datapiv%nx,", ny = ",datapiv%ny,&
             ", ncompoments = ",datapiv%ncomponent,", nsamples = ", datapiv%nsamples
        write(06,'(a,f6.2,a,f6.2,a,f6.2,a,f6.2)')"  - x0 = ",datapiv%x0,", y0 = ",datapiv%y0,&
             ", dx = ",datapiv%dx,", dy = ", datapiv%dy
@@ -609,7 +609,7 @@ contains
 
     if (datapiv%typeofgrid=="P") then
        write(06,*)"Polar grid"
-       write(06,'(a,i3,a,i3,a,i3,a,i5)')"  - nr = ",datapiv%nx,", ntheta = ",datapiv%ny,&
+       write(06,'(a,i4,a,i3,a,i3,a,i5)')"  - nr = ",datapiv%nx,", ntheta = ",datapiv%ny,&
             ", ncompoments = ",datapiv%ncomponent,", nsamples = ", datapiv%nsamples
        write(06,'(a,f6.2,a,f6.2,a,f6.2,a,f6.2)')"  - r0 = ",datapiv%x0,", thetha0 = ",datapiv%y0,&
             ", dr = ",datapiv%dx,", dtheta = ", datapiv%dy
@@ -618,6 +618,7 @@ contains
 
     write(06,*)" - Sampling frequency :",datapiv%fs
     write(06,*)" - z position :",datapiv%z_pos
+    write(06,*)" - pixel step :",datapiv%pixel_step
     write(06,*)" - Comments :",trim(datapiv%comments)
 
     if (datapiv%ncgen > 0) then
